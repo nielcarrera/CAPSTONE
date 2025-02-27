@@ -8,6 +8,12 @@ import Register from "./Pages/Register";
 import Home from "./Pages/Home";
 import Dashboard from "./Pages/Dashboard";
 import Download from "./Pages/Download";
+import Skintype from "./Pages/Skintype";
+import Profile from "./Pages/Profile";
+import Arms from "./components/bodyparts/arms";
+import Legs from "./components/bodyparts/legs";
+import Back from "./components/bodyparts/back";
+import Routine from "./Pages/Routine";
 
 const router = createBrowserRouter([
   { path: "/", element: <Home></Home> },
@@ -15,6 +21,12 @@ const router = createBrowserRouter([
   { path: "/register", element: <Register></Register> },
   { path: "/download", element: <Download></Download> },
   { path: "/db", element: <Dashboard></Dashboard> },
+  { path: "/profile", element: <Profile></Profile> },
+  { path: "/skintype", element: <Skintype></Skintype> },
+  { path: "/arms", element: <Arms></Arms> },
+  { path: "/legs", element: <Legs></Legs> },
+  { path: "/back", element: <Back></Back> },
+  { path: "/routine", element: <Routine></Routine> },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(

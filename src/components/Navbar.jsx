@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import logo from '../assets/weblogo.png';
-
+import logo from "../assets/weblogo.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,7 +14,7 @@ const Navbar = () => {
     { title: "Home", path: "/" },
     { title: "Dashboard", path: "/db" },
     { title: "Contact", path: "/contact" },
-    { title: "About", path: "/download" },
+    { title: "Download App", path: "/download" },
   ];
 
   return (
@@ -24,13 +23,11 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link to="/">
-              <img
-                src={logo} // Replace with your actual logo path
-                alt="Logo"
-                className="w-35 h-13  "
-              />
-            </Link>
+            <img
+              src={logo} // Replace with your actual logo path
+              alt="Logo"
+              className="w-35 h-13  "
+            />
           </div>
 
           {/* Desktop Menu */}

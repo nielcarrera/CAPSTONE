@@ -2,7 +2,9 @@ import { useState } from "react";
 import { ChevronDown, Menu as MenuIcon, X } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import BodyPartNav from "../components/bodypartnav";
 import { useNavigate } from "react-router-dom";
+import RecommendationModal from "../components/ReccomendationModal";
 import {
   Radar,
   RadarChart,
@@ -21,7 +23,7 @@ const analysisData = {
       { label: "Blackheads", value: 50, severity: "mild" },
     ],
     radarData: [
-      { subject: "Moisture", A: 80 },
+      { subject: "Whiteheads", A: 80 },
       { subject: "Pores", A: 65 },
       { subject: "Redness", A: 40 },
       { subject: "Wrinkles", A: 30 },
@@ -29,16 +31,17 @@ const analysisData = {
       { subject: "Dark Circles", A: 45 },
       { subject: "Acne", A: 35 },
       { subject: "Oil", A: 35 },
+      { subject: "Freckles", A: 35 },
     ],
     analytics: [
-      { label: "Moisture", value: 80 },
+      { label: "Whiteheads", value: 80 },
       { label: "Pores", value: 65 },
-      { label: "Blackheads", value: 50 },
-      { label: "Spots", value: 30 },
-      { label: "Acne", value: 35 },
-      { label: "Wrinkles", value: 40 },
+      { label: "Redness", value: 50 },
+      { label: "Wrinkles", value: 30 },
+      { label: "Blackheads", value: 35 },
+      { label: "Acne", value: 40 },
       { label: "Oil", value: 55 },
-      { label: "Redness", value: 45 },
+      { label: "Freckles", value: 45 },
     ],
   },
   "Jan 20, 2024 15:45": {
@@ -48,7 +51,7 @@ const analysisData = {
       { label: "Acne", value: 40, severity: "mild" },
     ],
     radarData: [
-      { subject: "Moisture", A: 40 },
+      { subject: "Whiteheads", A: 40 },
       { subject: "Pores", A: 55 },
       { subject: "Redness", A: 30 },
       { subject: "Wrinkles", A: 25 },
@@ -56,16 +59,18 @@ const analysisData = {
       { subject: "Dark Circles", A: 35 },
       { subject: "Acne", A: 40 },
       { subject: "Oil", A: 40 },
+      { subject: "Freckles", A: 40 },
     ],
     analytics: [
-      { label: "Moisture", value: 40 },
+      { label: "Whiteheads", value: 40 },
       { label: "Pores", value: 55 },
-      { label: "Blackheads", value: 75 },
-      { label: "Spots", value: 25 },
-      { label: "Acne", value: 40 },
-      { label: "Wrinkles", value: 30 },
-      { label: "Oil", value: 60 },
-      { label: "Redness", value: 35 },
+      { label: "Redness", value: 75 },
+      { label: "Wrinkles", value: 25 },
+      { label: "Blackheads", value: 40 },
+      { label: "Dark Circles", value: 30 },
+      { label: "Acne", value: 60 },
+      { label: "Oil", value: 35 },
+      { label: "Freckles", value: 35 },
     ],
   },
 };
@@ -84,7 +89,6 @@ const getSeverityColor = (severity) => {
 };
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const [showDistribution, setShowDistribution] = useState(true);
   const [showAnalytics, setShowAnalytics] = useState(true);
   const [selectedDate, setSelectedDate] = useState(
@@ -94,7 +98,6 @@ const Dashboard = () => {
   const [showDialog, setShowDialog] = useState(false);
 
   const currentData = analysisData[selectedDate];
-
   // Helper function to get color based on value
   const getColorByValue = (value) => {
     if (value >= 80) return "#ea384c"; // Red
@@ -108,6 +111,7 @@ const Dashboard = () => {
       <Sidebar></Sidebar>
       <Navbar></Navbar>
       <div className="mt-20 max-w-6xl mx-auto space-y-8">
+        <BodyPartNav />
         {/* Date Selector */}
         <div className="relative">
           <button
@@ -222,39 +226,10 @@ const Dashboard = () => {
           </AnimatePresence>
         </section>
 
-        <AnimatePresence>
-          {showDialog && (
-            <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white border-1 border-gray-800  px-15 py-3    rounded-lg max-w-md w-full mx-4">
-                <h3 className="text-lg font-semibold mb-5 ml-5">
-                  Generate Product Recommendation
-                </h3>
-                <p className="text-gray-600 mt-10">
-                  Start generating product recommendation based on identified
-                  impurities?
-                </p>
-                <div className="flex justify-end gap-26">
-                  <button
-                    onClick={() => {
-                      setShowDialog(false);
-                      navigate("/recommendations");
-                    }}
-                    className="px-10 py-2 mt-10 bg-violet-800 text-white rounded-lg hover:bg-violet-700 transition-colors"
-                  >
-                    Let's Go
-                  </button>
-
-                  <button
-                    onClick={() => setShowDialog(false)}
-                    className="px-4 py-2 border mt-10 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </AnimatePresence>
+        <RecommendationModal
+          showDialog={showDialog}
+          setShowDialog={setShowDialog}
+        />
 
         {/* Skin Issues Analytics */}
         <section className="bg-white p-6 rounded-xl shadow-sm">

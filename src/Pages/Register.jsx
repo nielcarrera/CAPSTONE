@@ -8,6 +8,7 @@ import "swiper/css/autoplay";
 import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
+import logo from "../assets/weblogo.png";
 
 const Register = () => {
   const [firstName, setFirstName] = useState("");
@@ -53,6 +54,11 @@ const Register = () => {
         style={{ maxWidth: "1150px", width: "100%" }}
       >
         <div className="p-10 md:w-1/2 p-6 w-full">
+          <img
+            src={logo} // Replace with your actual logo path
+            alt="Logo"
+            className="w-35 h-13"
+          />
           <h2 className="text-2xl ml-5 md:text-3xl font-bold mb-10 mt-5">
             Create an account
           </h2>
