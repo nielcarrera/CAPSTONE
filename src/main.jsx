@@ -5,6 +5,7 @@ import App from "./App";
 import { createBrowserRouter } from "react-router-dom";
 import Login from "./Pages/LogIn";
 import Register from "./Pages/Register";
+import Intro from "./Pages/Intro";
 import Home from "./Pages/Home";
 import Dashboard from "./Pages/Dashboard";
 import Download from "./Pages/Download";
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
   { path: "/", element: <Home></Home> },
   { path: "/Login", element: <Login></Login> },
   { path: "/register", element: <Register></Register> },
+  { path: "/intro", element: <Intro></Intro> },
   { path: "/download", element: <Download></Download> },
   { path: "/db", element: <Dashboard></Dashboard> },
   { path: "/profile", element: <Profile></Profile> },

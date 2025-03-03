@@ -143,22 +143,28 @@ const RoutinesPage = () => {
           </div>
         </div>
       </div>
-
       {/* Floating Generate Routine Button */}
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-6 right-6 px-12 py-3 bg-cyan-800 text-white rounded-full shadow-lg hover:bg-cyan-900 transition-all duration-300 flex items-center"
+        className="fixed bottom-10 right-15 px-13 py-4 bg-cyan-800 text-white rounded-full shadow-lg hover:bg-cyan-900 transition-all duration-300 flex items-center"
         onClick={() => setShowSkinTypeDialog(true)}
       >
         <span className="mr-2">Generate Routine</span>
         <Plus className="w-5 h-5" />
       </motion.button>
-
       <SkinTypeDialog
         showDialog={showSkinTypeDialog}
         setShowDialog={setShowSkinTypeDialog}
       />
+      <RoutineDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        onSave={() => {
+          // Here we would typically save the routine data
+        }}
+      />
+      ;
     </div>
   );
 };

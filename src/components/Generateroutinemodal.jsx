@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import normal from "../assets/normal.jpg";
-import combi from "../assets/combi.webp";
+
 import dry from "../assets/dry.jpg";
 import oily from "../assets/oily.jpg";
 
@@ -9,7 +9,6 @@ const skinTypeImages = {
   normal: normal,
   dry: dry,
   oily: oily,
-  combination: combi,
 };
 
 const SkinTypeDialog = ({ showDialog, setShowDialog }) => {

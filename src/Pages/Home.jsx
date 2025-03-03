@@ -2,6 +2,7 @@ import { Link, Navigate } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import apk from "../assets/apk.png";
+import routine from "../Pages/Routine";
 import home1 from "../assets/home1.jpg";
 import home2 from "../assets/home2.avif";
 import home3 from "../assets/home3.webp";
@@ -34,6 +35,10 @@ const Home = () => {
       image: home4,
     },
   ];
+
+  const handleRoutine = () => {
+    navigate("/routine"); // Change "/dashboard" to the route you want
+  };
 
   const navigate = useNavigate();
   const goToDownload = () => {
@@ -240,7 +245,10 @@ const Home = () => {
               and goals. Choose from morning, night, or fully personalized
               skincare routines.
             </p>
-            <button className="bg-gray-800 text-white  px-20 py-4 font-bold rounded-md hover:bg-cyan-900 transition-colors place-self-end mt-20">
+            <button
+              className="bg-gray-800 text-white  px-20 py-4 font-bold rounded-md hover:bg-cyan-900 transition-colors place-self-end mt-20"
+              onClick={handleRoutine}
+            >
               Go to Routine
             </button>
           </div>

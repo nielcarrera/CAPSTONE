@@ -6,6 +6,7 @@ import { Autoplay, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/autoplay";
+import intro from "../Pages/Intro";
 import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
@@ -19,6 +20,10 @@ const Login = () => {
   const navigate = useNavigate();
   const goToRegister = () => {
     navigate("/register");
+  };
+
+  const handleSignIn = () => {
+    navigate("/intro"); // Change "/dashboard" to the route you want
   };
 
   const handleSubmit = (e) => {
@@ -96,8 +101,9 @@ const Login = () => {
               </a>
             </div>
             <button
-              type="submit"
+              type="button"
               className="bg-cyan-900 hover:bg-cyan-800 p-2.5 rounded text-base font-medium"
+              onClick={handleSignIn}
             >
               Sign in
             </button>

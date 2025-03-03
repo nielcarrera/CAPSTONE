@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Edit2, ChevronRight } from "lucide-react";
+import { Camera, Edit2, ChevronRight, Check } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import prodimage from "../assets/home4.webp";
+
 const Profile = () => {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -18,13 +19,12 @@ const Profile = () => {
     weight: "60",
     skinType: "Combination",
     avatar: "/placeholder.svg",
-    // Add more fields that will be needed for database integration
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    userId: "user_123", // This will be replaced with actual user ID from auth
+    userId: "user_123", // Replace with actual user ID from auth
   });
 
-  // Dummy data for routines and products - will be replaced with database calls
+  // Dummy data for routines and products
   const routines = [
     { id: 1, name: "Morning Routine", time: "7:00 AM", steps: 4 },
     { id: 2, name: "Night Routine", time: "9:00 PM", steps: 5 },
@@ -51,65 +51,95 @@ const Profile = () => {
     },
   ];
 
+  // Handle input changes
   const handleInputChange = (field, value) => {
-    const newData = { ...profileData, [field]: value };
-    setProfileData(newData);
-    updateProfile(newData);
+    setProfileData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Handle image upload
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const newData = { ...profileData, avatar: reader.result };
-        setProfileData(newData);
-        updateProfile(newData);
+        setProfileData((prev) => ({ ...prev, avatar: reader.result }));
       };
       reader.readAsDataURL(file);
     }
   };
 
+  // Toggle edit mode
   const handleEdit = () => {
-    setEditing(!editing);
+    setEditing((prev) => !prev);
   };
 
-  const updateProfile = (newData) => {
-    // This will be replaced with an API call to update the profile
-    console.log("Profile update will be sent to database:", newData);
+  // Save profile data (mock API call)
+  const handleSave = async () => {
+    try {
+      // Simulate API call to save data
+      console.log("Saving profile data:", profileData);
+      // Replace with actual API call
+      // await axios.post("/api/profile", profileData);
+
+      // Show success alert
+      showSuccessAlert();
+      setEditing(false); // Exit edit mode
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      alert("Failed to save changes. Please try again.");
+    }
   };
 
-  const renderEditableField = (label, field, value, type = "text") => (
-    <div className="space-y-2">
-      <label className="text-sm text-gray-500">{label}</label>
-      {editing ? (
-        type === "select" ? (
-          <select
-            value={value}
-            onChange={(e) => handleInputChange(field, e.target.value)}
-            className="w-full p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-800"
-          >
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
+  // Show aesthetic success alert
+  const showSuccessAlert = () => {
+    const alertDiv = document.createElement("div");
+    alertDiv.className =
+      "fixed top-6 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in";
+    alertDiv.innerHTML = `
+      <Check className="w-5 h-5" />
+      <span>Changes Successful!</span>
+    `;
+    document.body.appendChild(alertDiv);
+
+    // Remove the alert after 3 seconds
+    setTimeout(() => {
+      alertDiv.remove();
+    }, 3000);
+  };
+
+  // Render editable field
+  const renderEditableField = (label, field, value, type = "text") => {
+    const unit = field === "height" ? "cm" : field === "weight" ? "kg" : "";
+    return (
+      <div className="space-y-2">
+        <label className="text-sm text-gray-500">{label}</label>
+        {editing ? (
+          type === "select" ? (
+            <select
+              value={value}
+              onChange={(e) => handleInputChange(field, e.target.value)}
+              className="w-full p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-800"
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          ) : (
+            <input
+              type={type}
+              value={value}
+              onChange={(e) => handleInputChange(field, e.target.value)}
+              className="w-full p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-800"
+            />
+          )
         ) : (
-          <input
-            type={type}
-            value={value}
-            onChange={(e) => handleInputChange(field, e.target.value)}
-            className="w-full p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        )
-      ) : (
-        <p className="text-gray-800 p-2">
-          {type === "number"
-            ? `${value} ${field === "height" ? "cm" : "kg"}`
-            : value}
-        </p>
-      )}
-    </div>
-  );
+          <p className="text-gray-800 p-2">
+            {value} {unit}
+          </p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 mt-20">
@@ -250,13 +280,22 @@ const Profile = () => {
                   "number"
                 )}
               </div>
+              {editing && (
+                <button
+                  onClick={handleSave}
+                  className="w-full mt-6 px-4 py-2 bg-cyan-800 text-white rounded-lg hover:bg-cyan-900 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Check className="w-5 h-5" />
+                  Save Changes
+                </button>
+              )}
             </div>
 
             {/* Skincare Overview */}
             <div className="space-y-8">
               {/* Routines Preview */}
               <div className="bg-white rounded-2xl shadow-sm p-8">
-                <div className="flex justify-between items-center mb-6 bo">
+                <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold text-gray-800">
                     My Routines
                   </h2>
@@ -272,7 +311,7 @@ const Profile = () => {
                   {routines.map((routine) => (
                     <div
                       key={routine.id}
-                      className=" flex justify-between items-center p-4 bg-gray-50 rounded-xl border-1 shadow-gray-800 shadow-sm hover:bg-gray-100 transition-colors"
+                      className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border-1 shadow-gray-800 shadow-sm hover:bg-gray-100 transition-colors"
                     >
                       <div>
                         <h3 className="font-medium text-gray-800">
