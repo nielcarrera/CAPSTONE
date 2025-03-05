@@ -9,6 +9,7 @@ import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
 import logo from "../assets/weblogo.png";
+import supabase from "../supabase";
 
 const Register = () => {
   const [firstName, setFirstName] = useState("");
@@ -19,19 +20,70 @@ const Register = () => {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [agree, setAgree] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("First Name:", firstName);
-    console.log("Last Name:", lastName);
-    console.log("Email:", email);
-    console.log("Password:", password);
-    console.log("Confirm Password:", confirmPassword);
-    console.log("Age:", age);
-    console.log("Gender:", gender);
-    console.log("Agreed to Terms:", agree);
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+    if (!agree) {
+      alert("You must agree to the Terms & Conditions.");
+      return;
+    }
+
+    setLoading(true);
+
+    // Step 1: Insert user credentials into the 'user' table
+    const { data: userData, error: userError } = await supabase
+      .from("user")
+      .insert([
+        {
+          email,
+          password, // Store password (hashing is recommended)
+          created_at: new Date().toISOString(), // Ensure timestamp is stored
+        },
+      ])
+      .select("id"); // Get the inserted user's ID
+
+    if (userError) {
+      console.error("User Table Insert Error:", userError.message);
+      alert("Error saving user credentials.");
+      setLoading(false);
+      return;
+    }
+
+    const userId = userData[0]?.id; // Get the newly created user's ID
+
+    // Step 2: Insert user details into the 'userDetails' table
+    const { data: detailsData, error: detailsError } = await supabase
+      .from("userDetails")
+      .insert([
+        {
+          firstName,
+          lastName,
+          age: parseInt(age),
+          gender,
+          userId, // Associate details with user ID
+        },
+      ]);
+
+    if (detailsError) {
+      console.error("UserDetails Table Insert Error:", detailsError.message);
+      alert("Error saving user details.");
+      setLoading(false);
+      return;
+    }
+
+    alert("Registration successful!");
+    navigate("/login");
+
+    setLoading(false);
   };
 
+  const navigate = useNavigate();
   const features = [
     {
       image: reg1,

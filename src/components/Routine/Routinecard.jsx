@@ -32,13 +32,13 @@ const RoutineCard = ({ routine, onEdit, onDelete }) => {
         </div>
       </div>
 
-      <div className="p-6 bg-gray-300 border-1 border-cyan-800 rounded-2xl">
-        <table className="w-full ">
+      <div className="p-6 bg-gray-300 border-1 border-cyan-800 rounded-2xl w-10/12 ">
+        <table className="w-full">
           <thead>
             <tr className="text-left text-sm text-gray-600 border-b">
-              <th className="pb-3 pl-4">Step</th>
-              <th className="pb-3">Product</th>
-              <th className="pb-3">Note</th>
+              <th className="pb-3 pl-4 w-1/4">Step</th>
+              <th className="pb-3 w-1/2">Product</th>
+              <th className="pb-3 w-1/4">Body Part</th>
             </tr>
           </thead>
           <tbody>
@@ -51,7 +51,7 @@ const RoutineCard = ({ routine, onEdit, onDelete }) => {
                 <td className="py-3 font-medium text-gray-800">
                   {step.product}
                 </td>
-                <td className="py-3 text-sm text-gray-600">{step.note}</td>
+                <td className="py-3 text-sm text-gray-600">{step.bodyPart}</td>
               </tr>
             ))}
           </tbody>

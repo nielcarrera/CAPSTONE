@@ -11,26 +11,47 @@ import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
 import logo from "../assets/weblogo.png";
+import supabase from "../supabase";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const navigate = useNavigate();
-  const goToRegister = () => {
-    navigate("/register");
-  };
+  const goToRegister = () => navigate("/register");
 
-  const handleSignIn = () => {
-    navigate("/intro"); // Change "/dashboard" to the route you want
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Email:", email);
-    console.log("Password:", password);
-    console.log("Remember Me:", rememberMe);
+    setLoading(true);
+    setSuccess(false);
+
+    try {
+      // Authenticate user with Supabase Auth (DO NOT query "user" table manually)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        alert("Invalid email or password.");
+        setLoading(false);
+        return;
+      }
+
+      // Confirm login success
+      setSuccess(true);
+      setTimeout(() => {
+        navigate("/intro");
+      }, 2000);
+    } catch (error) {
+      console.error("Login Error:", error);
+      alert("Something went wrong. Please try again.");
+    }
+
+    setLoading(false);
   };
 
   const features = [
@@ -103,7 +124,7 @@ const Login = () => {
             <button
               type="button"
               className="bg-cyan-900 hover:bg-cyan-800 p-2.5 rounded text-base font-medium"
-              onClick={handleSignIn}
+              onClick={handleSubmit}
             >
               Sign in
             </button>

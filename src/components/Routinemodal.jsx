@@ -18,7 +18,7 @@ const RoutineModal = ({ showDialog, setShowDialog }) => {
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.8 }}
-            className="bg-white border border-gray-200 px-8 py-6 rounded-lg max-w-md w-full mx-4 relative shadow-lg"
+            className="bg-white  border-gray-200 px-8 py-6 rounded-lg max-w-md w-full mx-4 relative shadow-lg"
           >
             <button
               onClick={() => setShowDialog(false)}

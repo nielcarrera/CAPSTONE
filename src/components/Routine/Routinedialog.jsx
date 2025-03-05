@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Trash } from "lucide-react";
 
 const timeOptions = Array.from({ length: 24 }, (_, i) => {
   const hour = i % 12 || 12;
@@ -33,6 +33,10 @@ const RoutineDialog = ({ open, onOpenChange, onSave }) => {
       isCustom: false, // Default to dropdown
     };
     setSteps([...steps, newStep]);
+  };
+
+  const handleDeleteStep = (id) => {
+    setSteps((prevSteps) => prevSteps.filter((step) => step.id !== id));
   };
 
   const handleProductChange = (stepId, value) => {
@@ -127,92 +131,129 @@ const RoutineDialog = ({ open, onOpenChange, onSave }) => {
                 />
               </div>
 
-              <div className="space-y-4 border-1 rounded-xl border-gray-800 shadow-lg pt-3 shadow-gray-800">
-                <label className="block text-sm font-medium ml-16 text-gray-800">
-                  Steps
-                </label>
-                {steps.map((step) => (
-                  <div key={step.id} className="grid grid-cols-7 gap-4">
-                    <div className="col-span-3 flex items-center ml-20">
-                      <span className="font-medium">{step.id}</span>
-                    </div>
-                    <div className="col-span-3">
-                      {/* Dropdown or Text Field */}
-                      {step.isCustom ? (
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={step.product}
-                            onChange={(e) =>
-                              handleProductChange(step.id, e.target.value)
-                            }
-                            placeholder="Enter your own product"
-                            className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-                          />
+              <div className="max-w-full overflow-auto max-h-[300px] border-1 rounded-lg border-gray-800 shadow-md shadow-gray-800 p-4 ">
+                <label className="block text-sm font-medium text-gray-800 mb-2"></label>
+                <table className="min-w-[700px] border-collapse border border-gray-300">
+                  {/* Table Header */}
+                  <thead>
+                    <tr className="bg-gray-100 text-gray-800">
+                      <th className="border border-gray-300 px-4 py-2 w-2/12 text-center">
+                        Step
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2  w-5/12 text-center">
+                        Product
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2  w-6/12 text-center">
+                        Body Part
+                      </th>
+                      <th className="border border-gray-300 px-4 py-2 W-2/12 text-center">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+
+                  {/* Table Body */}
+                  <tbody>
+                    {steps.map((step) => (
+                      <tr key={step.id} className="border-b border-gray-300">
+                        {/* Step Number */}
+                        <td className="border border-gray-300 px-4 py-2 font-medium text-center">
+                          {step.id}
+                        </td>
+
+                        {/* Product Selection (Dropdown or Input) */}
+                        <td className="border border-gray-300 px-4 py-2">
+                          {step.isCustom ? (
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={step.product}
+                                onChange={(e) =>
+                                  handleProductChange(step.id, e.target.value)
+                                }
+                                placeholder="Enter your own product"
+                                className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              />
+                              <button
+                                onClick={() => toggleCustomInput(step.id)}
+                                className="absolute inset-y-0 right-2 text-gray-500 hover:text-gray-700"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <select
+                              value={step.product}
+                              onChange={(e) => {
+                                if (e.target.value === "custom") {
+                                  toggleCustomInput(step.id);
+                                } else {
+                                  handleProductChange(step.id, e.target.value);
+                                }
+                              }}
+                              className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 appearance-none"
+                            >
+                              <option value="">Select a product</option>
+                              {predefinedProducts.map((product) => (
+                                <option key={product} value={product}>
+                                  {product}
+                                </option>
+                              ))}
+                              <option value="custom">Enter my own</option>
+                            </select>
+                          )}
                           <button
-                            onClick={() => toggleCustomInput(step.id)}
-                            className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
+                            className="w-full mt-2 px-4 py-2 border bg-gray-800 rounded-md hover:bg-gray-600 text-white transition-colors"
+                            onClick={() => setShowProductDialog(true)}
                           >
-                            <X className="w-4 h-4" />
+                            Go to My Products
                           </button>
-                        </div>
-                      ) : (
-                        <div className="relative">
+                        </td>
+
+                        {/* Body Part Selection */}
+                        <td className="border border-gray-300 px-4 py-2">
                           <select
-                            value={step.product}
-                            onChange={(e) => {
-                              if (e.target.value === "custom") {
-                                toggleCustomInput(step.id);
-                              } else {
-                                handleProductChange(step.id, e.target.value);
-                              }
-                            }}
+                            value={step.bodyPart || ""}
+                            onChange={(e) =>
+                              handleBodyPartChange(step.id, e.target.value)
+                            }
                             className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 appearance-none"
                           >
-                            <option value="">Select a product</option>
-                            {predefinedProducts.map((product) => (
-                              <option key={product} value={product}>
-                                {product}
-                              </option>
-                            ))}
-                            <option value="custom">Enter my own</option>
+                            <option value="">Select a body part</option>
+                            <option value="Face">Face</option>
+                            <option value="Arms">Arms</option>
+                            <option value="Legs">Legs</option>
+                            <option value="Back">Back</option>
                           </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-                      )}
-                      {/* Go to My Products Button */}
-                      <button
-                        className="w-full mt-2 px-4 py-2 border bg-gray-800 rounded-md hover:bg-gray-600 text-white transition-colors"
-                        onClick={() => setShowProductDialog(true)}
-                      >
-                        Go to My Products
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addStep}
-                  className="ml-7 mb-3 inline-flex items-center px-3 py-2 text-sm font-sm border text-white bg-cyan-800 rounded-md hover:bg-cyan-600 transition-colors"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Step
-                </button>
+                        </td>
+
+                        {/* Delete Button */}
+                        <td className="border border-gray-300 px-4 py-2 text-center">
+                          <button
+                            onClick={() => handleDeleteStep(step.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* Add Step Button */}
+                    <tr>
+                      <td colSpan="2" className="text-left px-4 py-2">
+                        <button
+                          type="button"
+                          onClick={addStep}
+                          className="inline-flex items-center px-3 py-2 text-sm border text-white bg-cyan-800 rounded-md hover:bg-cyan-600 transition-colors"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Step
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
               <button
@@ -258,16 +299,6 @@ const RoutineDialog = ({ open, onOpenChange, onSave }) => {
       )}
 
       {/* Floating Generate Routine Button */}
-      <button
-        className="fixed bottom-6 right-6 px-6 py-3 bg-cyan-800 text-white rounded-full shadow-lg hover:bg-cyan-900 transition-colors flex items-center"
-        onClick={() => {
-          // Add your logic to generate routine here
-          alert("Generate Routine clicked!");
-        }}
-      >
-        <span className="mr-2">Need some help?</span>
-        <Plus className="w-5 h-5" />
-      </button>
     </>
   );
 };
