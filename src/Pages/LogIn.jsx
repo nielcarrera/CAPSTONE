@@ -8,7 +8,6 @@ import { Autoplay, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/autoplay";
-import intro from "../Pages/Intro";
 import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
@@ -27,99 +26,58 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
-
+  
       if (error) {
         if (error.message === "Email not confirmed") {
-          toast.error("Please confirm your email address before logging in.", {
+          toast.error("Please confirm your email before logging in.", {
             position: "top-center",
             autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
           });
           return;
         }
         throw error;
       }
-
-      if (!session) {
+  
+      if (!data.session) {
         console.error("No session found after login.");
         return;
       }
 
-      // Step 1: Validate user existence
+      const userId = data.session.user.id; // 🔥 Fetch UID here
+      console.log("User ID:", userId);
+
+      // Get user profile data from Supabase
       const { data: userData, error: userError } = await supabase
-        .from("user")
-        .select("*")
-        .eq("email", email)
-        .limit(1);
-
-      if (userError) {
-        throw userError;
-      }
-
-      if (userData.length === 0) {
-        toast.error("User not found", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        return;
-      }
-
-      // Step 2: Validate password
-      const user = userData[0];
-      if (user.password !== password) {
-        toast.error("Invalid password", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        return;
-      }
-
-      localStorage.setItem("userEmail", email); // Store the user's email
-
-      if (!user.has_seen_intro) {
+        .from("userDetails")
+        .select("has_seen_intro")
+        .eq("userId", userId)
+        .single();
+  
+      if (userError) throw userError;
+  
+      localStorage.setItem("userEmail", email);
+  
+      if (!userData.has_seen_intro) {
         navigate("/intro");
       } else {
         navigate("/");
       }
-
-      // Show success message
+  
       toast.success("Login successful!", {
         position: "top-center",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
       });
     } catch (error) {
       console.error("Login Error:", error);
       toast.error(error.message || "Something went wrong. Please try again.", {
         position: "top-center",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
       });
     } finally {
       setLoading(false);

@@ -42,7 +42,7 @@ const IntroScreen = () => {
       if (userEmail) {
         // Update the `has_seen_intro` field in the database
         const { error } = await supabase
-          .from("user")
+          .from("userDetails")
           .update({ has_seen_intro: true })
           .eq("email", userEmail);
 
@@ -57,7 +57,7 @@ const IntroScreen = () => {
 
   const nextSlide = () => {
     if (currentSlide === slides.length - 1) {
-      navigate("/"); // Navigate to main app when finished
+      navigate("/home"); // Navigate to main app when finished
     } else {
       setCurrentSlide((prev) => prev + 1);
     }
