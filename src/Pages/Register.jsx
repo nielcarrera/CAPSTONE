@@ -22,6 +22,8 @@ const Register = () => {
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const navigate = useNavigate();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -36,54 +38,48 @@ const Register = () => {
 
     setLoading(true);
 
-    // Step 1: Insert user credentials into the 'user' table
-    const { data: userData, error: userError } = await supabase
-      .from("user")
-      .insert([
-        {
-          email,
-          password, // Store password (hashing is recommended)
-          created_at: new Date().toISOString(), // Ensure timestamp is stored
-        },
-      ])
-      .select("id"); // Get the inserted user's ID
+    try {
+      // Step 1: Register the user using Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (userError) {
-      console.error("User Table Insert Error:", userError.message);
-      alert("Error saving user credentials.");
+      if (authError) {
+        throw authError;
+      }
+
+      const userId = authData.user?.id; // Get the user ID from the auth response
+
+      // Step 2: Insert user details into the 'userDetails' table
+      const { data: detailsData, error: detailsError } = await supabase
+        .from("userDetails")
+        .insert([
+          {
+            firstName,
+            lastName,
+            age: parseInt(age),
+            gender,
+            userId, // Associate details with the authenticated user's ID
+          },
+        ]);
+
+      if (detailsError) {
+        throw detailsError;
+      }
+
+      alert(
+        "Registration successful! Please check your email to confirm your account."
+      );
+      navigate("/login");
+    } catch (error) {
+      console.error("Registration Error:", error.message);
+      alert("Error during registration. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const userId = userData[0]?.id; // Get the newly created user's ID
-
-    // Step 2: Insert user details into the 'userDetails' table
-    const { data: detailsData, error: detailsError } = await supabase
-      .from("userDetails")
-      .insert([
-        {
-          firstName,
-          lastName,
-          age: parseInt(age),
-          gender,
-          userId, // Associate details with user ID
-        },
-      ]);
-
-    if (detailsError) {
-      console.error("UserDetails Table Insert Error:", detailsError.message);
-      alert("Error saving user details.");
-      setLoading(false);
-      return;
-    }
-
-    alert("Registration successful!");
-    navigate("/login");
-
-    setLoading(false);
   };
 
-  const navigate = useNavigate();
   const features = [
     {
       image: reg1,
@@ -91,7 +87,7 @@ const Register = () => {
     },
     {
       image: reg2,
-      caption: "Personalized Skin Product Reccomendation Based on Needs",
+      caption: "Personalized Skin Product Recommendation Based on Needs",
     },
     {
       image: reg3,
@@ -205,8 +201,9 @@ const Register = () => {
             <button
               type="submit"
               className="bg-cyan-900 hover:bg-cyan-800 p-2.5 rounded text-base font-medium"
+              disabled={loading}
             >
-              Create account
+              {loading ? "Creating account..." : "Create account"}
             </button>
           </form>
         </div>

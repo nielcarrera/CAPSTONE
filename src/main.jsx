@@ -17,7 +17,8 @@ import Back from "./components/bodyparts/back";
 import Routine from "./Pages/Routine";
 
 const router = createBrowserRouter([
-  { path: "/", element: <Home></Home> },
+  { path: "/", element: <Login></Login> },
+  { path: "home/", element: <Home></Home> },
   { path: "/Login", element: <Login></Login> },
   { path: "/register", element: <Register></Register> },
   { path: "/intro", element: <Intro></Intro> },

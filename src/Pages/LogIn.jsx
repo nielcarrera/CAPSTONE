@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import google from "../assets/google.png";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
@@ -18,7 +20,6 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const navigate = useNavigate();
   const goToRegister = () => navigate("/register");
@@ -26,34 +27,104 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setSuccess(false);
 
     try {
-      // Authenticate user with Supabase Auth (DO NOT query "user" table manually)
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        alert("Invalid email or password.");
-        setLoading(false);
+        if (error.message === "Email not confirmed") {
+          toast.error("Please confirm your email address before logging in.", {
+            position: "top-center",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          return;
+        }
+        throw error;
+      }
+
+      if (!session) {
+        console.error("No session found after login.");
         return;
       }
 
-      // Confirm login success
-      setSuccess(true);
-      setTimeout(() => {
+      // Step 1: Validate user existence
+      const { data: userData, error: userError } = await supabase
+        .from("user")
+        .select("*")
+        .eq("email", email)
+        .limit(1);
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (userData.length === 0) {
+        toast.error("User not found", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return;
+      }
+
+      // Step 2: Validate password
+      const user = userData[0];
+      if (user.password !== password) {
+        toast.error("Invalid password", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return;
+      }
+
+      localStorage.setItem("userEmail", email); // Store the user's email
+
+      if (!user.has_seen_intro) {
         navigate("/intro");
-      }, 2000);
+      } else {
+        navigate("/");
+      }
+
+      // Show success message
+      toast.success("Login successful!", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } catch (error) {
       console.error("Login Error:", error);
-      alert("Something went wrong. Please try again.");
+      toast.error(error.message || "Something went wrong. Please try again.", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
-
   const features = [
     { image: reg1, caption: "Seamless Skintype and Skin Impurity Identifying" },
     {
@@ -68,6 +139,7 @@ const Login = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white p-4 ">
+      <ToastContainer />
       <div
         className="flex flex-col md:flex-row bg-gray-800 rounded-lg shadow-lg overflow-hidden"
         style={{ maxWidth: "1000px", width: "100%" }}
@@ -122,11 +194,11 @@ const Login = () => {
               </a>
             </div>
             <button
-              type="button"
+              type="submit"
               className="bg-cyan-900 hover:bg-cyan-800 p-2.5 rounded text-base font-medium"
-              onClick={handleSubmit}
+              disabled={loading}
             >
-              Sign in
+              {loading ? "Signing in..." : "Sign in"}
             </button>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">

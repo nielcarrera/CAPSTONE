@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +6,7 @@ import introimg from "../assets/char.png";
 import s1 from "../assets/slide1.png";
 import s2 from "../assets/slide2.png";
 import s3 from "../assets/slide3.png";
+import supabase from "../supabase";
 
 const slides = [
   {
@@ -32,6 +33,27 @@ const IntroScreen = () => {
   const [showFeatures, setShowFeatures] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const markIntroAsSeen = async () => {
+      // Get the current user's email from local storage or state
+      const userEmail = localStorage.getItem("userEmail");
+
+      if (userEmail) {
+        // Update the `has_seen_intro` field in the database
+        const { error } = await supabase
+          .from("user")
+          .update({ has_seen_intro: true })
+          .eq("email", userEmail);
+
+        if (error) {
+          console.error("Error updating intro status:", error);
+        }
+      }
+    };
+
+    markIntroAsSeen();
+  }, []);
 
   const nextSlide = () => {
     if (currentSlide === slides.length - 1) {

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Edit2, ChevronRight, Check } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import prodimage from "../assets/home4.webp";
+import supabase from "../supabase"; // Import Supabase client
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -11,17 +12,12 @@ const Profile = () => {
   const [profileData, setProfileData] = useState({
     firstName: "Venniel",
     lastName: "Carrera",
-    nickname: "DEBI",
+    nickname: "debi",
     email: "vennielcarrera@gmail.com",
     age: "20",
     gender: "Male",
-    height: "175",
-    weight: "60",
-    skinType: "Combination",
-    avatar: "/placeholder.svg",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    userId: "user_123", // Replace with actual user ID from auth
+    skinType: "Oily", // Dummy data
+    avatar: "/placeholder.svg", // Dummy data
   });
 
   // Dummy data for routines and products
@@ -51,12 +47,97 @@ const Profile = () => {
     },
   ];
 
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  // Fetch user data based on email stored in localStorage
+  const fetchProfileData = async () => {
+    const userEmail = localStorage.getItem("userEmail"); // Get the user's email from localStorage
+    if (!userEmail) {
+      console.error("No user email found in localStorage");
+      return;
+    }
+
+    console.log("Fetching profile data for email:", userEmail);
+
+    try {
+      // Step 1: Ensure the user is authenticated
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser(); // Use `getUser` instead of `getSession` for clarity
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (!user) {
+        console.error("No authenticated user found");
+        return;
+      }
+
+      const userId = user.id; // Get the user's UUID from the auth response
+      console.log("Authenticated user ID:", userId);
+
+      // Step 2: Fetch the profile data from the `userDetails` table using the user's UUID
+      const { data: profileData, error: profileError } = await supabase
+        .from("userDetails") // Ensure this matches your table name in Supabase
+        .select("firstName, lastName, age, gender") // Fetch only necessary fields
+        .eq("userId", userId) // Match the user's UUID (foreign key in `userDetails`)
+        .single(); // Fetch a single record
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      console.log("Profile data fetched:", profileData);
+
+      // Step 3: Fetch the height and weight from the `user_statistics` table
+      const { data: userStatistics, error: statisticsError } = await supabase
+        .from("user_statistics") // Ensure this matches your table name in Supabase
+        .select("height, weight") // Fetch height and weight
+        .eq("userId", userId) // Match the user's UUID (foreign key in `user_statistics`)
+        .single(); // Fetch a single record
+
+      if (statisticsError) {
+        throw statisticsError;
+      }
+
+      console.log("User statistics fetched:", userStatistics);
+
+      // Step 4: Merge all fetched data into the profileData state
+      if (profileData && userStatistics) {
+        setProfileData((prev) => ({
+          ...prev,
+          ...profileData, // firstName, lastName, age, gender
+          ...userStatistics, // height, weight
+          email: userEmail, // Add the email from the `auth.users` table
+        }));
+        console.log("Profile data updated in state:", {
+          ...profileData,
+          ...userStatistics,
+          email: userEmail,
+        });
+      } else {
+        console.error("No profile data found for the user");
+      }
+    } catch (error) {
+      console.error("Error fetching profile data:", error.message);
+      console.error("Supabase error details:", error);
+    }
+  };
   // Handle input changes
   const handleInputChange = (field, value) => {
     setProfileData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Handle image upload
+  // Toggle edit mode
+  const handleEdit = () => {
+    setEditing((prev) => !prev);
+  };
+
+  // Handle image upload (optional, can be implemented later)
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -68,29 +149,67 @@ const Profile = () => {
     }
   };
 
-  // Toggle edit mode
-  const handleEdit = () => {
-    setEditing((prev) => !prev);
-  };
-
-  // Save profile data (mock API call)
+  // Save profile data to Supabase
   const handleSave = async () => {
-    try {
-      // Simulate API call to save data
-      console.log("Saving profile data:", profileData);
-      // Replace with actual API call
-      // await axios.post("/api/profile", profileData);
+    const userEmail = localStorage.getItem("userEmail"); // Get the user's email from localStorage
+    if (!userEmail) {
+      console.error("No user email found in localStorage");
+      return;
+    }
 
-      // Show success alert
-      showSuccessAlert();
-      setEditing(false); // Exit edit mode
+    try {
+      // Step 1: Get the authenticated user's ID
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser(); // Fetch the authenticated user
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (!user) {
+        console.error("No authenticated user found");
+        return;
+      }
+
+      const userId = user.id; // Get the user's UUID
+
+      // Step 2: Update the user's profile data in the `userDetails` table
+      const { error } = await supabase
+        .from("userDetails") // Ensure this matches your table name in Supabase
+        .update({
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          nickname: profileData.nickname,
+          age: profileData.age,
+          gender: profileData.gender,
+        })
+        .eq("userId", userId); // Use the user's UUID as the foreign key
+
+      if (error) {
+        throw error;
+      }
+
+      // Step 3: Exit editing mode and show success feedback
+      setEditing(false);
+      showSuccessAlert(); // Ensure this function displays a success message to the user
+      console.log("Profile data updated successfully!");
     } catch (error) {
-      console.error("Failed to save profile:", error);
-      alert("Failed to save changes. Please try again.");
+      console.error("Error updating profile data:", error.message);
+      // Show an error message to the user
+      toast.error("Failed to update profile. Please try again.", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
-  // Show aesthetic success alert
+  // Show success alert
   const showSuccessAlert = () => {
     const alertDiv = document.createElement("div");
     alertDiv.className =
@@ -214,24 +333,9 @@ const Profile = () => {
                 <div className="inline-flex gap-2">
                   <p className="text-gray-600">
                     Skintype:{" "}
-                    {editing ? (
-                      <select
-                        value={profileData.skinType}
-                        onChange={(e) =>
-                          handleInputChange("skinType", e.target.value)
-                        }
-                        className="px-3 py-1 bg-white text-blue-600 rounded-full text-sm border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="Combination">Combination</option>
-                        <option value="Dry">Dry</option>
-                        <option value="Oily">Oily</option>
-                        <option value="Normal">Normal</option>
-                      </select>
-                    ) : (
-                      <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm">
-                        {profileData.skinType}
-                      </span>
-                    )}
+                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm">
+                      {profileData.skinType}
+                    </span>
                   </p>
                 </div>
               </div>
