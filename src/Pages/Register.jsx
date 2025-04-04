@@ -46,10 +46,27 @@ const Register = () => {
       });
 
       if (authError) {
-        throw authError;
+        // Check if the error is due to the email already being registered
+        if (authError.message.includes("User already registered")) {
+          alert(
+            "This email is already registered. Please use a different email or log in."
+          );
+        } else {
+          console.error("Auth Error:", authError);
+          throw new Error(`Authentication failed: ${authError.message}`);
+        }
+        return; // Stop further execution
       }
 
-      const userId = authData.user?.id; // Get the user ID from the auth response
+      if (!authData.user) {
+        throw new Error("User registration failed. No user data returned.");
+      }
+
+      const userId = authData.user.id;
+      console.log("User ID:", userId); // Debugging line
+
+      // Optional: Add a small delay to ensure the user is fully registered
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
 
       // Step 2: Insert user details into the 'userDetails' table
       const { data: detailsData, error: detailsError } = await supabase
@@ -65,7 +82,10 @@ const Register = () => {
         ]);
 
       if (detailsError) {
-        throw detailsError;
+        console.error("Details Error:", detailsError);
+        throw new Error(
+          `Failed to insert user details: ${detailsError.message}`
+        );
       }
 
       alert(
@@ -79,7 +99,6 @@ const Register = () => {
       setLoading(false);
     }
   };
-
   const features = [
     {
       image: reg1,

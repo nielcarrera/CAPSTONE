@@ -29,102 +29,51 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.signInWithPassword({
+      // Step 1: Authenticate User
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        if (error.message === "Email not confirmed") {
-          toast.error("Please confirm your email address before logging in.", {
+        console.error("Login Error:", error);
+        if (error.message === "Invalid login credentials") {
+          toast.error("Invalid email or password. Please try again.", {
             position: "top-center",
             autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
           });
-          return;
+        } else {
+          throw error;
         }
-        throw error;
-      }
-
-      if (!session) {
-        console.error("No session found after login.");
         return;
       }
 
-      // Step 1: Validate user existence
-      const { data: userData, error: userError } = await supabase
-        .from("user")
-        .select("*")
-        .eq("email", email)
-        .limit(1);
-
-      if (userError) {
-        throw userError;
-      }
-
-      if (userData.length === 0) {
-        toast.error("User not found", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+      // Step 2: Check if session exists
+      if (!data.session) {
+        toast.error("Login failed. No session found.");
         return;
       }
 
-      // Step 2: Validate password
-      const user = userData[0];
-      if (user.password !== password) {
-        toast.error("Invalid password", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        return;
-      }
+      // ✅ Store session/token in localStorage
+      localStorage.setItem("userEmail", email);
+      localStorage.setItem("access_token", data.session.access_token);
 
-      localStorage.setItem("userEmail", email); // Store the user's email
+      // Step 3: Redirect user based on status
+      navigate("/home"); // Redirect to the home page after login
 
-      if (!user.has_seen_intro) {
-        navigate("/intro");
-      } else {
-        navigate("/");
-      }
-
-      // Show success message
+      // Success message
       toast.success("Login successful!", {
         position: "top-center",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
       });
     } catch (error) {
       console.error("Login Error:", error);
-      toast.error(error.message || "Something went wrong. Please try again.", {
-        position: "top-center",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      toast.error(error.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
   const features = [
     { image: reg1, caption: "Seamless Skintype and Skin Impurity Identifying" },
     {

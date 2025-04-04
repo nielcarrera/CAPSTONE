@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { ChevronDown, Menu as MenuIcon, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import BodyPartNav from "../components/bodypartnav";
-import { useNavigate } from "react-router-dom";
 import RecommendationModal from "../components/ReccomendationModal";
 import {
   Radar,
@@ -89,8 +88,6 @@ const getSeverityColor = (severity) => {
 };
 
 const Dashboard = () => {
-  const [showDistribution, setShowDistribution] = useState(true);
-  const [showAnalytics, setShowAnalytics] = useState(true);
   const [selectedDate, setSelectedDate] = useState(
     Object.keys(analysisData)[0]
   );
@@ -98,6 +95,7 @@ const Dashboard = () => {
   const [showDialog, setShowDialog] = useState(false);
 
   const currentData = analysisData[selectedDate];
+
   // Helper function to get color based on value
   const getColorByValue = (value) => {
     if (value >= 80) return "#ea384c"; // Red
@@ -107,16 +105,15 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 ml-[280px]">
+    <div className="min-h-screen bg-gray-50 p-4 ml-[240px]">
       <Sidebar></Sidebar>
       <Navbar></Navbar>
-      <div className="mt-20 max-w-6xl mx-auto space-y-8">
-        <BodyPartNav />
+      <div className="mt-20 max-w-6xl mx-auto space-y-8 ">
         {/* Date Selector */}
         <div className="relative">
           <button
             onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border-1 border-cyan-700"
           >
             <span>{selectedDate}</span>
             <ChevronDown size={20} />
@@ -174,117 +171,110 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Skin Issues Distribution */}
-        <section className="bg-white p-6 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Skin Issues Distribution</h2>
-            <button
-              onClick={() => setShowDistribution(!showDistribution)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <MenuIcon size={20} />
-            </button>
-          </div>
+        {/* Row for Spider Graph and Bar Graph Analytics */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Skin Issues Distribution (Spider Graph) */}
+          <section className="bg-white w-12/12 h-12/12 p-8 rounded-xl  text-center mb-10 shadow-cyan-800">
+            <h2 className="text-xl font-semibold mb-4">
+              Skin Issues Distribution
+            </h2>
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={currentData.radarData}>
+                  <PolarGrid stroke="#e5e7eb" />
+                  <PolarAngleAxis dataKey="subject" stroke="#6b7280" />
+                  <Radar
+                    name="Skin Issues"
+                    dataKey="A"
+                    stroke="#8b5cf6"
+                    fill="#4A044E"
+                    fillOpacity={0.6}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">
+              Note: The spider graph illustrates the severity of different skin
+              issues. The further the point is from the center, the more severe
+              the issue.
+            </p>
+          </section>
 
-          <AnimatePresence>
-            {showDistribution && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-4"
-              >
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={currentData.radarData}>
-                      <PolarGrid stroke="#e5e7eb" />
-                      <PolarAngleAxis dataKey="subject" stroke="#6b7280" />
-                      <Radar
-                        name="Skin Issues"
-                        dataKey="A"
-                        stroke="#8b5cf6"
-                        fill="#4A044E"
-                        fillOpacity={0.6}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-                <p className="text-sm text-gray-500">
-                  Note: The spider graph illustrates the severity of different
-                  skin issues. The further the point is from the center, the
-                  more severe the issue. This visualization helps track multiple
-                  skin concerns simultaneously.
-                </p>
-                <button
-                  className="w-3/12 ml-90  bg-gray-800 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors"
-                  onClick={() => setShowDialog(true)}
+          {/* Skin Issues Analytics (Bar Graph) */}
+          <section className="bg-white p-6 rounded-xl w-12/12 shadow-cyan-800 col-span-1 ">
+            <h2 className="text-xl font-semibold text-gray-800 text-center mb-10">
+              Skin Issues Analytics
+            </h2>
+            <div
+              className="flex space-x-2 justify-center overflow-x-auto"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {currentData.analytics.map((issue, index) => (
+                <div
+                  key={issue.label}
+                  className="flex flex-col items-center font-sm space-y-2 text-cyan-500"
+                  style={{
+                    animationDelay: `${index * 100}ms`,
+                    width: "58px",
+                    flexShrink: 0, // Prevent columns from shrinking
+                  }}
                 >
-                  Recommend Product
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </section>
-
-        <RecommendationModal
-          showDialog={showDialog}
-          setShowDialog={setShowDialog}
-        />
-
-        {/* Skin Issues Analytics */}
-        <section className="bg-white p-6 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Skin Issues Analytics</h2>
-            <button
-              onClick={() => setShowAnalytics(!showAnalytics)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <MenuIcon size={20} />
-            </button>
-          </div>
-
-          <AnimatePresence>
-            {showAnalytics && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-4"
-              >
-                {currentData.analytics.map((issue) => (
-                  <div key={issue.label} className="mt-10 space-y-2">
-                    <div className="flex justify-between ">
-                      <span className="font-medium ">{issue.label}</span>
-                      <span className="font-semibold mr-20">
-                        {issue.value}%
-                      </span>
+                  {/* Label on the left side */}
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className="text-sm font-medium text-center"
+                      style={{
+                        writingMode: "vertical-rl",
+                        transform: "rotate(180deg)", // Rotate to make it readable from bottom to top
+                        marginRight: "5px",
+                      }}
+                    >
+                      {issue.label}
                     </div>
-                    <div className="h-4 bg-gray-800 w-10/12 rounded-full">
+
+                    {/* Vertical bar with equal height */}
+                    <div className="relative w-7 min-h-80 bg-gray-700 rounded-md overflow-hidden flex">
                       <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${issue.value}%` }}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${issue.value}%` }}
                         transition={{ duration: 0.5 }}
+                        className="absolute bottom-0 w-full rounded-md"
                         style={{
-                          height: "100%",
-                          borderRadius: "9999px",
                           backgroundColor: getColorByValue(issue.value),
                         }}
                       />
                     </div>
                   </div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div className="mt-15">
-            <button
-              className="w-3/12 ml-90  bg-gray-800 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors"
-              onClick={() => setShowDialog(true)}
-            >
-              Recommend Product
-            </button>
-          </div>
-        </section>
+
+                  {/* Percentage at the bottom */}
+                  <span className="text-sm font-semibold ml-5 mb-8">
+                    {issue.value}%
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-gray-500 mt-4  ">
+              Note: The spider graph illustrates the severity of different skin
+              issues. The further the point is from the center, the more severe
+              the issue.
+            </p>
+          </section>
+        </div>
+
+        {/* Recommendation Button */}
+        <div className="mt-8 flex justify-center">
+          <button
+            className="w-3/12 bg-gray-800 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors"
+            onClick={() => setShowDialog(true)}
+          >
+            Recommend Product
+          </button>
+        </div>
+
+        <RecommendationModal
+          showDialog={showDialog}
+          setShowDialog={setShowDialog}
+        />
       </div>
     </div>
   );

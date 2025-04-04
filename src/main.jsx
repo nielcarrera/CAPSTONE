@@ -15,15 +15,22 @@ import Arms from "./components/bodyparts/arms";
 import Legs from "./components/bodyparts/legs";
 import Back from "./components/bodyparts/back";
 import Routine from "./Pages/Routine";
+import LandingPage from "./Pages/LandingPage";
+import ProductReccomendations from "./Pages/Product_Reccomendation";
 
 const router = createBrowserRouter([
   { path: "/", element: <Login></Login> },
   { path: "home/", element: <Home></Home> },
+  { path: "/lp", element: <LandingPage></LandingPage> },
   { path: "/Login", element: <Login></Login> },
   { path: "/register", element: <Register></Register> },
   { path: "/intro", element: <Intro></Intro> },
   { path: "/download", element: <Download></Download> },
   { path: "/db", element: <Dashboard></Dashboard> },
+  {
+    path: "/prodrecco",
+    element: <ProductReccomendations></ProductReccomendations>,
+  },
   { path: "/profile", element: <Profile></Profile> },
   { path: "/skintype", element: <Skintype></Skintype> },
   { path: "/arms", element: <Arms></Arms> },
