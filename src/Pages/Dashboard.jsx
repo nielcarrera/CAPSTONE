@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Share } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import BodyPartNav from "../components/bodypartnav";
 import RecommendationModal from "../components/ReccomendationModal";
 import {
   Radar,
@@ -12,12 +11,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
+import { skinIssues } from "../Pages/utils/SkinIssueconfig";
 
-// Dummy data for different analysis dates
+// Simplified analysis data structure
 const analysisData = {
   "Feb 20, 2024 14:30": {
     keyProblems: [
-      { label: "Moisture", value: 80, severity: "severe" },
+      { label: "Acne", value: 80, severity: "severe" },
       { label: "Pores", value: 65, severity: "moderate" },
       { label: "Blackheads", value: 50, severity: "mild" },
     ],
@@ -41,6 +41,16 @@ const analysisData = {
       { label: "Acne", value: 40 },
       { label: "Oil", value: 55 },
       { label: "Freckles", value: 45 },
+    ],
+    impurities: [
+      { label: "Whiteheads", value: 80 },
+      { label: "Pores", value: 65 },
+      { label: "Oil", value: 55 },
+      { label: "Redness", value: 50 },
+      { label: "Freckles", value: 45 },
+      { label: "Acne", value: 40 },
+      { label: "Blackheads", value: 35 },
+      { label: "Wrinkles", value: 30 },
     ],
   },
   "Jan 20, 2024 15:45": {
@@ -71,6 +81,16 @@ const analysisData = {
       { label: "Oil", value: 35 },
       { label: "Freckles", value: 35 },
     ],
+    impurities: [
+      { label: "Blackheads", value: 75 },
+      { label: "Acne", value: 60 },
+      { label: "Pores", value: 55 },
+      { label: "Whiteheads", value: 40 },
+      { label: "Oil", value: 40 },
+      { label: "Freckles", value: 35 },
+      { label: "Dark Circles", value: 30 },
+      { label: "Wrinkles", value: 25 },
+    ],
   },
 };
 
@@ -87,28 +107,62 @@ const getSeverityColor = (severity) => {
   }
 };
 
+const getColorByValue = (value) => {
+  if (value >= 80) return "#ea384c"; // Red
+  if (value >= 60) return "#F97316"; // Orange
+  if (value >= 40) return "#eab308"; // Dark Yellow
+  return "#22c55e"; // Green
+};
+
+// Skin Score Calculation Function
+const computeSkinScore = (impurities) => {
+  if (!impurities || impurities.length === 0) return 100; // Perfect score if no impurities
+
+  const totalImpurity = impurities.reduce(
+    (sum, impurity) => sum + impurity.value,
+    0
+  );
+  const averageImpurity = totalImpurity / impurities.length;
+  const skinScore = 100 - averageImpurity; // Invert the scale (0-100 where 100 is best)
+
+  return Math.round(skinScore); // Return as integer
+};
+
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(
     Object.keys(analysisData)[0]
   );
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [selectedImpurity, setSelectedImpurity] = useState(null);
 
   const currentData = analysisData[selectedDate];
 
-  // Helper function to get color based on value
-  const getColorByValue = (value) => {
-    if (value >= 80) return "#ea384c"; // Red
-    if (value >= 60) return "#F97316"; // Orange
-    if (value >= 40) return "#eab308"; // Dark Yellow
-    return "#22c55e"; // Green
+  // Enrich impurities with image and description data
+  const enrichedImpurities = currentData.impurities.map((impurity) => ({
+    ...impurity,
+    image: skinIssues[impurity.label]?.image || "",
+    description:
+      skinIssues[impurity.label]?.description || "No description available",
+  }));
+
+  const sortedImpurities = [...enrichedImpurities].sort(
+    (a, b) => b.value - a.value
+  );
+
+  // Calculate skin score
+  const skinScore = computeSkinScore(currentData.impurities);
+
+  const handleShareScore = () => {
+    // Implement your share functionality here
+    alert(`Sharing skin score: ${skinScore}`);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 ml-[240px]">
-      <Sidebar></Sidebar>
-      <Navbar></Navbar>
-      <div className="mt-20 max-w-6xl mx-auto space-y-8 ">
+      <Sidebar />
+      <Navbar />
+      <div className="mt-20 max-w-6xl mx-auto space-y-8">
         {/* Date Selector */}
         <div className="relative">
           <button
@@ -146,35 +200,104 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Key Problems Section */}
         <section className="bg-white p-6 rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-10">
             <h2 className="text-xl font-bold">Key Problems Detected</h2>
           </div>
           <div className="space-y-4">
-            <div className="grid grid-cols-3 ">
-              {currentData.keyProblems.map((problem) => (
-                <div key={problem.label} className="space-y-2">
-                  <div className="text-m font-semibold">{problem.label}</div>
-                  <div
-                    className={`h-6 w-4/12 rounded-lg ${getSeverityColor(
-                      problem.severity
-                    )}`}
-                  />
-                </div>
-              ))}
+            <div className="grid grid-cols-3 gap-10">
+              {currentData.keyProblems.map((problem) => {
+                // Get color based on value percentage
+                const color = getColorByValue(problem.value);
+                // Convert color hex to Tailwind class if needed
+                const bgColor =
+                  color === "#ea384c"
+                    ? "bg-red-500"
+                    : color === "#F97316"
+                    ? "bg-orange-500"
+                    : color === "#eab308"
+                    ? "bg-yellow-500"
+                    : "bg-green-500";
+
+                return (
+                  <div key={problem.label} className="space-y-2 ">
+                    <div className="flex justify-between items-center">
+                      <span className="text-m font-semibold">
+                        {problem.label}
+                      </span>
+                      <span className="text-md text-gray-900">
+                        {problem.value}%
+                      </span>
+                    </div>
+                    <div className="relative w-10/12 h-6 bg-gray-300 rounded-xl overflow-hidden">
+                      <div
+                        className={`h-full rounded-xl ${bgColor}`}
+                        style={{ width: `${problem.value}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <p className="text-sm text-gray-500">
-              Note: Colors illustrate the severity of impurity: Red being
-              severe, Orange being moderate and Green being mild
-            </p>
+            <p className="text-sm text-gray-500"></p>
           </div>
         </section>
+
+        {/* Skin Score Card */}
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className="bg-gray-800 rounded-xl mx-6 px-5 shadow-sm overflow-hidden"
+          style={{
+            boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)",
+            height: "180px",
+          }}
+        >
+          <div className="p-3 md:p-4 h-full flex flex-col">
+            <div className="flex justify-between items-start">
+              <h2 className="text-lg md:text-xl text-white font-semibold">
+                Overall Skin Score
+              </h2>
+              <button
+                onClick={handleShareScore}
+                className="text-gray-300 hover:text-white transition-colors"
+                aria-label="Share score"
+              >
+                <Share className="w-7 h-7" />
+              </button>
+            </div>
+
+            <div className="flex-grow flex flex-col items-center justify-center">
+              <div className="text-4xl md:text-5xl font-bold text-blue-400">
+                {skinScore}
+                <span className="text-lg md:text-xl text-gray-400 ml-1">
+                  /100
+                </span>
+              </div>
+              <div className="mt-1 text-sm text-gray-100">
+                {skinScore >= 80
+                  ? "Excellent"
+                  : skinScore >= 60
+                  ? "Good"
+                  : skinScore >= 40
+                  ? "Fair"
+                  : "Needs Attention"}
+              </div>
+            </div>
+
+            {/* Progress bar at bottom */}
+            <div className="h-1 bg-gray-700 w-full mt-auto">
+              <div
+                className="h-full bg-blue-500 transition-all duration-500"
+                style={{ width: `${skinScore}%` }}
+              />
+            </div>
+          </div>
+        </motion.div>
 
         {/* Row for Spider Graph and Bar Graph Analytics */}
         <div className="grid grid-cols-2 gap-2">
           {/* Skin Issues Distribution (Spider Graph) */}
-          <section className="bg-white w-12/12 h-12/12 p-8 rounded-xl  text-center mb-10 shadow-cyan-800">
+          <section className="bg-white w-12/12 h-12/12 p-8 rounded-xl text-center mb-10 shadow-cyan-800">
             <h2 className="text-xl font-semibold mb-4">
               Skin Issues Distribution
             </h2>
@@ -201,7 +324,7 @@ const Dashboard = () => {
           </section>
 
           {/* Skin Issues Analytics (Bar Graph) */}
-          <section className="bg-white p-6 rounded-xl w-12/12 shadow-cyan-800 col-span-1 ">
+          <section className="bg-white p-6 rounded-xl w-12/12 shadow-cyan-800 col-span-1">
             <h2 className="text-xl font-semibold text-gray-800 text-center mb-10">
               Skin Issues Analytics
             </h2>
@@ -216,23 +339,20 @@ const Dashboard = () => {
                   style={{
                     animationDelay: `${index * 100}ms`,
                     width: "58px",
-                    flexShrink: 0, // Prevent columns from shrinking
+                    flexShrink: 0,
                   }}
                 >
-                  {/* Label on the left side */}
                   <div className="flex items-center space-x-2">
                     <div
                       className="text-sm font-medium text-center"
                       style={{
                         writingMode: "vertical-rl",
-                        transform: "rotate(180deg)", // Rotate to make it readable from bottom to top
+                        transform: "rotate(180deg)",
                         marginRight: "5px",
                       }}
                     >
                       {issue.label}
                     </div>
-
-                    {/* Vertical bar with equal height */}
                     <div className="relative w-7 min-h-80 bg-gray-700 rounded-md overflow-hidden flex">
                       <motion.div
                         initial={{ height: 0 }}
@@ -245,15 +365,13 @@ const Dashboard = () => {
                       />
                     </div>
                   </div>
-
-                  {/* Percentage at the bottom */}
                   <span className="text-sm font-semibold ml-5 mb-8">
                     {issue.value}%
                   </span>
                 </div>
               ))}
             </div>
-            <p className="text-sm text-gray-500 mt-4  ">
+            <p className="text-sm text-gray-500 mt-4">
               Note: The spider graph illustrates the severity of different skin
               issues. The further the point is from the center, the more severe
               the issue.
@@ -261,19 +379,72 @@ const Dashboard = () => {
           </section>
         </div>
 
-        {/* Recommendation Button */}
-        <div className="mt-8 flex justify-center">
-          <button
-            className="w-3/12 bg-gray-800 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors"
-            onClick={() => setShowDialog(true)}
-          >
-            Recommend Product
-          </button>
-        </div>
+        {/* Product Recommendation Section */}
+        <section className="bg-white p-6 rounded-xl shadow-sm">
+          <h2 className="text-xl font-bold mb-6">Product Recommendations</h2>
+          <div className="space-y-6">
+            {sortedImpurities.map((impurity) => (
+              <div
+                key={impurity.label}
+                className="flex flex-col p-4  border border-gray-100 rounded-lg"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-35 h-35 mr-5 rounded-md overflow-hidden">
+                    <img
+                      src={impurity.image}
+                      alt={impurity.label}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-grow">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold mb-3 text-xl">
+                          {impurity.label}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {impurity.description}
+                        </p>
+                      </div>
+                      <span className="text-md font-lg  mb-3 px-2 py-1  rounded">
+                        {impurity.value}%
+                      </span>
+                    </div>
+                    <div className="mt-3">
+                      <div className="h-5 w-full bg-gray-300 rounded-sm overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${impurity.value}%` }}
+                          transition={{ duration: 0.8 }}
+                          className="h-full rounded-md"
+                          style={{
+                            backgroundColor: getColorByValue(impurity.value),
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 flex justify-center">
+                  <button
+                    onClick={() => {
+                      setSelectedImpurity(impurity.label);
+                      setShowDialog(true);
+                    }}
+                    className="px-6 py-3 bg-cyan-900 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Generate Product
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <RecommendationModal
           showDialog={showDialog}
           setShowDialog={setShowDialog}
+          impurity={selectedImpurity}
         />
       </div>
     </div>
