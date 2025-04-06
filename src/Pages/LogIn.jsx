@@ -8,7 +8,6 @@ import { Autoplay, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/autoplay";
-import intro from "../Pages/Intro";
 import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
@@ -29,46 +28,91 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Step 1: Authenticate User
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error("Login Error:", error);
-        if (error.message === "Invalid login credentials") {
-          toast.error("Invalid email or password. Please try again.", {
+        if (error.message === "Email not confirmed") {
+          toast.error("Please confirm your email address before logging in.", {
             position: "top-center",
             autoClose: 3000,
           });
         } else {
           throw error;
         }
+        throw error;
+      }
+
+      if (!session) {
+        console.error("No session found after login.");
         return;
       }
 
-      // Step 2: Check if session exists
-      if (!data.session) {
-        toast.error("Login failed. No session found.");
+      // Step 1: Validate user existence
+      const { data: userData, error: userError } = await supabase
+        .from("user")
+        .select("*")
+        .eq("email", email)
+        .limit(1);
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (userData.length === 0) {
+        toast.error("User not found", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         return;
       }
 
-      // ✅ Store session/token in localStorage
-      localStorage.setItem("userEmail", email);
-      localStorage.setItem("access_token", data.session.access_token);
+      // Step 2: Validate password
+      const user = userData[0];
+      if (user.password !== password) {
+        toast.error("Invalid password", {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return;
+      }
 
-      // Step 3: Redirect user based on status
-      navigate("/home"); // Redirect to the home page after login
+      localStorage.setItem("userEmail", email); // Store the user's email
 
-      // Success message
+      if (!user.has_seen_intro) {
+        navigate("/intro");
+      } else {
+        navigate("/");
+      }
+
+      // Show success message
       toast.success("Login successful!", {
         position: "top-center",
         autoClose: 3000,
       });
     } catch (error) {
       console.error("Login Error:", error);
-      toast.error(error.message || "Something went wrong. Please try again.");
+      toast.error(error.message || "Something went wrong. Please try again.", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setLoading(false);
     }
