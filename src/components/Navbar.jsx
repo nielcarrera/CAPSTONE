@@ -11,8 +11,8 @@ const Navbar = ({session}) => {
   };
 
   const menuItems = [
-    { title: "Home", path: "/" },
-    { title: "Dashboard", path: "/db" },
+    { title: "Home", path: "/home" },
+    { title: "Dashboard", path: "/lp" },
     { title: "Contact", path: "/contact" },
     { title: "Download App", path: "/download" },
   ];

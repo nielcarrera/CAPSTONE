@@ -3,17 +3,19 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import apk from "../assets/apk.png";
 import routine from "../Pages/Routine";
+
 import home1 from "../assets/home1.jpg";
 import home2 from "../assets/home2.avif";
 import home3 from "../assets/home3.webp";
 import home4 from "../assets/home4.webp";
 
+
 const Home = ({session}) => {
-  
   const coreFeatures = [
     {
       title: "User Dashboard",
       description: "Track your progress",
+      path: "/lp",
       path: "/db",
       image: home1, // You can replace this with actual feature-specific images
     },

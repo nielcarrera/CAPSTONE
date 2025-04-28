@@ -85,7 +85,7 @@ const Dashboard = () => {
     },
   ];
 
-  // Check if current element is being highlighted in tour
+  // Simple highlight check
   const isHighlighted = (id) => showTour && tourSteps[tourStep]?.id === id;
 
   // Tour controls
@@ -123,23 +123,22 @@ const Dashboard = () => {
   const handleShareScore = () => alert(`Sharing skin score: ${skinScore}`);
 
   return (
-    <div
-      className={`min-h-screen bg-gray-50 p-4 ml-[240px] relative ${
-        showTour ? "overflow-hidden" : ""
-      }`}
-    >
+    <div className="min-h-screen bg-gray-50 p-4 ml-[240px] relative">
       <Sidebar />
       <Navbar />
 
       {/* Dark overlay when tour is active */}
       {showTour && (
-        <div className="fixed inset-0  bg-opacity-50 z-30 pointer-events-none" />
+        <div
+          className="fixed inset-1  bg-opacity-30 z-20 pointer-events-none"
+          style={{ marginLeft: "240px" }}
+        />
       )}
 
       {/* Help Button */}
       <button
         onClick={startTour}
-        className="fixed bottom-6 right-6 z-20 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+        className="fixed bottom-6 right-6 z-30 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors"
         title="Show tour guide"
       >
         <HelpCircle size={24} />
@@ -152,7 +151,8 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed z-40 bottom-8 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl max-w-xs md:max-w-sm p-4"
+            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 border-1 border-cyan-800 bg-white rounded-lg shadow-xl w-11/12 max-w-md p-4"
+            style={{ marginLeft: "120px" }}
           >
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-bold text-lg">
@@ -183,7 +183,7 @@ const Dashboard = () => {
                 </span>
                 <button
                   onClick={nextStep}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                   {tourStep === tourSteps.length - 1 ? "Finish" : "Next"}
                 </button>
@@ -193,18 +193,22 @@ const Dashboard = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="mt-20 max-w-6xl mx-auto space-y-8">
         {/* Date Selector */}
         <div
           id="date-selector"
-          className={`relative transition-all duration-300 ${
-            isHighlighted("date-selector") ? "ring-4 ring-blue-400 z-10" : ""
+          className={`relative bg-white rounded-lg shadow-sm border-1 border-cyan-700 transition-all duration-300 ${
+            isHighlighted("date-selector")
+              ? "ring-4 ring-blue-500 z-10"
+              : showTour
+              ? "opacity-40"
+              : ""
           }`}
         >
           <button
             onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border-1 border-cyan-700"
+            className="flex items-center gap-2 px-4 py-2 w-full"
           >
             <span>{selectedDate}</span>
             <ChevronDown size={20} />
@@ -241,7 +245,11 @@ const Dashboard = () => {
         <section
           id="key-problems"
           className={`bg-white p-6 rounded-xl shadow-sm transition-all duration-300 ${
-            isHighlighted("key-problems") ? "ring-4 ring-blue-400 z-10" : ""
+            isHighlighted("key-problems")
+              ? "ring-4 ring-blue-500 z-10"
+              : showTour
+              ? "opacity-40"
+              : ""
           }`}
         >
           <h2 className="text-xl font-bold mb-10">Key Problems Detected</h2>
@@ -267,11 +275,14 @@ const Dashboard = () => {
         </section>
 
         {/* Skin Score Card */}
-        <motion.div
+        <div
           id="skin-score"
-          whileHover={{ scale: 1.02 }}
           className={`bg-gray-800 rounded-xl mx-6 px-5 shadow-sm overflow-hidden transition-all duration-300 ${
-            isHighlighted("skin-score") ? "ring-4 ring-blue-400 z-10" : ""
+            isHighlighted("skin-score")
+              ? "ring-4 ring-blue-500 z-10"
+              : showTour
+              ? "opacity-40"
+              : ""
           }`}
           style={{ height: "180px" }}
         >
@@ -311,7 +322,7 @@ const Dashboard = () => {
               />
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-2 gap-2">
@@ -319,7 +330,11 @@ const Dashboard = () => {
           <section
             id="spider-graph"
             className={`bg-white p-8 rounded-xl shadow-cyan-800 transition-all duration-300 ${
-              isHighlighted("spider-graph") ? "ring-4 ring-blue-400 z-10" : ""
+              isHighlighted("spider-graph")
+                ? "ring-4 ring-blue-500 z-10"
+                : showTour
+                ? "opacity-40"
+                : ""
             }`}
           >
             <h2 className="text-xl font-semibold mb-4">
@@ -347,7 +362,9 @@ const Dashboard = () => {
             id="analytics-graph"
             className={`bg-white p-6 rounded-xl shadow-cyan-800 transition-all duration-300 ${
               isHighlighted("analytics-graph")
-                ? "ring-4 ring-blue-400 z-10"
+                ? "ring-4 ring-blue-500 z-10"
+                : showTour
+                ? "opacity-40"
                 : ""
             }`}
           >
@@ -396,7 +413,11 @@ const Dashboard = () => {
         <section
           id="recommendations"
           className={`bg-white p-6 rounded-xl shadow-sm transition-all duration-300 ${
-            isHighlighted("recommendations") ? "ring-4 ring-blue-400 z-10" : ""
+            isHighlighted("recommendations")
+              ? "ring-4 ring-blue-500 z-10"
+              : showTour
+              ? "opacity-40"
+              : ""
           }`}
         >
           <h2 className="text-xl font-bold mb-6">Product Recommendations</h2>
