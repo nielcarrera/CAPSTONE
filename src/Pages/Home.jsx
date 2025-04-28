@@ -9,12 +9,14 @@ import home2 from "../assets/home2.avif";
 import home3 from "../assets/home3.webp";
 import home4 from "../assets/home4.webp";
 
-const Home = () => {
+
+const Home = ({session}) => {
   const coreFeatures = [
     {
       title: "User Dashboard",
       description: "Track your progress",
       path: "/lp",
+      path: "/db",
       image: home1, // You can replace this with actual feature-specific images
     },
     {
@@ -48,7 +50,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <Navbar session={session}/>
       <br></br>
       {/* Main Content */}
       <div className="w-full px-20 pt-20 tracking-wide">

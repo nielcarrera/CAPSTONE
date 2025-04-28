@@ -17,6 +17,7 @@ import Back from "./components/bodyparts/back";
 import Routine from "./Pages/Routine";
 import LandingPage from "./Pages/LandingPage";
 import ProductReccomendations from "./Pages/Product_Reccomendation";
+import Logout from "./Pages/Logout";
 
 const router = createBrowserRouter([
   { path: "/", element: <Login></Login> },
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
   { path: "/intro", element: <Intro></Intro> },
   { path: "/download", element: <Download></Download> },
   { path: "/db", element: <Dashboard></Dashboard> },
+  { path: "/logout", element: <Logout/> },
   {
     path: "/prodrecco",
     element: <ProductReccomendations></ProductReccomendations>,
