@@ -3,7 +3,7 @@ import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "../assets/weblogo.png";
 
-const Navbar = () => {
+const Navbar = ({session}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => {
@@ -45,17 +45,25 @@ const Navbar = () => {
               </Link>
             ))}
           </div>
-
-          {/* Logout Button */}
-          <Link
-            to="/login"
+          {!session ? (
+            <Link
+            to="/"
+            className="hidden md:block bg-gray-800 font-semibold  text-white px-15 py-3 rounded-md text-sm font-medium 
+              transition-all duration-300 shadow-sm hover:shadow-md hover:bg-gray-600 
+              transform hover:scale-105 active:scale-95"
+          >
+            Login
+          </Link>
+          ) : (
+            <Link
+            to="/logout"
             className="hidden md:block bg-gray-800 font-semibold  text-white px-15 py-3 rounded-md text-sm font-medium 
               transition-all duration-300 shadow-sm hover:shadow-md hover:bg-gray-600 
               transform hover:scale-105 active:scale-95"
           >
             Logout
           </Link>
-
+          )}
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
             <button
