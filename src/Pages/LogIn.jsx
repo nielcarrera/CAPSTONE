@@ -13,6 +13,7 @@ import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
 import logo from "../assets/weblogo.png";
 import supabase from "../supabase";
+import Home from "./Home";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -271,8 +272,7 @@ const Login = () => {
   }
   else {
     return (<div>
-      Logged in! {session.user.email}
-      <button onClick={signOut} className="bg-red-500 text-white px-4 py-2 rounded">Sign Out</button>
+      <Home session = {session}/>
       </div>)
   }
 };
