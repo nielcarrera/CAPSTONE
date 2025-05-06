@@ -1,9 +1,8 @@
 import { Link, Navigate } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
+import Navbar from "../components/NavbarSplashScreen";
 import apk from "../assets/apk.png";
 import routine from "../Pages/Routine";
-
 import home1 from "../assets/home1.jpg";
 import home2 from "../assets/home2.avif";
 import home3 from "../assets/home3.webp";
@@ -14,25 +13,25 @@ const Home = () => {
     {
       title: "User Dashboard",
       description: "Track your progress",
-      path: "/lp",
+      path: "/login",
       image: home1, // You can replace this with actual feature-specific images
     },
     {
       title: "Identify Skintype and Impurities",
       description: "(for mobile application)",
-      path: "download",
+      path: "/download",
       image: home2,
     },
     {
       title: "Create Routine",
       description: "AI Generated Routines",
-      path: "/create-routine",
+      path: "/login",
       image: home3,
     },
     {
       title: "Manage Product",
       description: "Skin Product Reccomendation",
-      path: "/manage-product",
+      path: "/login",
       image: home4,
     },
   ];
@@ -137,7 +136,7 @@ const Home = () => {
             </p>
             <button
               className="bg-gray-800 text-white px-20 py-4 font-bold rounded-md bg-cyan-900 hover:bg-cyan-900 transition-colors place-self-end transition-colors place-self-end mt-20"
-              onClick={() => navigate("/db")}
+              onClick={() => navigate("/login")}
             >
               Go to Dashboard
             </button>

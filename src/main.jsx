@@ -19,7 +19,7 @@ import LandingPage from "./Pages/LandingPage";
 import ProductReccomendations from "./Pages/Product_Reccomendation";
 
 const router = createBrowserRouter([
-  { path: "/", element: <Login></Login> },
+  { path: "/", element: <Home></Home> },
   { path: "home/", element: <Home></Home> },
   { path: "/lp", element: <LandingPage></LandingPage> },
   { path: "/Login", element: <Login></Login> },
