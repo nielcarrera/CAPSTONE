@@ -27,7 +27,7 @@ const Sidebar = ({ className }) => {
     { icon: User, label: "My Skin Type", path: "/skintype" },
     { icon: Recycle, label: "My Routines", path: "/routine" },
     { icon: PillBottle, label: "My Products", path: "/product" },
-    { icon: Package, label: "Product Recommendations", path: "/products" },
+    { icon: Package, label: "Product Recommendations", path: "/prodrecco" },
     { section: "Preferences" },
     { icon: Settings, label: "Settings", path: "/settings" },
     { icon: User, label: "My Profile", path: "/profile" },

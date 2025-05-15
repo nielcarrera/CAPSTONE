@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import RecommendationModal from "../components/ReccomendationModal";
+import { Link } from "react-router-dom";
 import {
   ANALYSIS_DATA,
   SEVERITY_COLORS,
@@ -77,11 +77,6 @@ const Dashboard = () => {
       title: "Skin Analytics",
       content:
         "Detailed breakdown of each skin issue with severity percentages.",
-    },
-    {
-      id: "recommendations",
-      title: "Recommendations",
-      content: "Personalized product suggestions based on your skin analysis.",
     },
   ];
 
@@ -325,7 +320,7 @@ const Dashboard = () => {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {/* Radar Chart */}
           <section
             id="spider-graph"
@@ -409,81 +404,15 @@ const Dashboard = () => {
           </section>
         </div>
 
-        {/* Product Recommendations */}
-        <section
-          id="recommendations"
-          className={`bg-white p-6 rounded-xl shadow-sm transition-all duration-300 ${
-            isHighlighted("recommendations")
-              ? "ring-4 ring-blue-500 z-10"
-              : showTour
-              ? "opacity-40"
-              : ""
-          }`}
-        >
-          <h2 className="text-xl font-bold mb-6">Product Recommendations</h2>
-          <div className="space-y-6">
-            {sortedImpurities.map((impurity) => (
-              <div
-                key={impurity.label}
-                className="flex flex-col p-4 border border-gray-100 rounded-lg"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-35 h-35 mr-5 rounded-md overflow-hidden">
-                    <img
-                      src={impurity.image}
-                      alt={impurity.label}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-grow">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold mb-3 text-xl">
-                          {impurity.label}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {impurity.description}
-                        </p>
-                      </div>
-                      <span className="text-md font-lg mb-3 px-2 py-1 rounded">
-                        {impurity.value}%
-                      </span>
-                    </div>
-                    <div className="mt-3">
-                      <div className="h-5 w-full bg-gray-300 rounded-sm overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${impurity.value}%` }}
-                          className="h-full rounded-md"
-                          style={{
-                            backgroundColor: getColorByValue(impurity.value),
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 flex justify-center">
-                  <button
-                    onClick={() => {
-                      setSelectedImpurity(impurity.label);
-                      setShowDialog(true);
-                    }}
-                    className="px-6 py-3 bg-cyan-900 text-white rounded-lg hover:bg-gray-600"
-                  >
-                    Generate Product
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <RecommendationModal
-          showDialog={showDialog}
-          setShowDialog={setShowDialog}
-          impurity={selectedImpurity}
-        />
+        {/* View Recommendations Button */}
+        <div className="flex justify-center">
+          <Link
+            to="/product-recommendations"
+            className="px-6 py-3 bg-cyan-900 text-white rounded-lg hover:bg-gray-600 text-lg font-medium"
+          >
+            View Product Recommendations
+          </Link>
+        </div>
       </div>
     </div>
   );

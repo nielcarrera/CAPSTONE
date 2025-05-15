@@ -12,3 +12,10 @@ export const enrichImpurities = (impurities, skinIssues) => {
       skinIssues[impurity.label]?.description || "No description available",
   }));
 };
+
+export const getColorByValue = (value) => {
+  if (value >= 75) return "#dc2626"; // Red for severe
+  if (value >= 50) return "#facc15"; // Yellow for moderate
+  if (value >= 25) return "#34d399"; // Green for mild
+  return "#3b82f6"; // Blue for very low
+};

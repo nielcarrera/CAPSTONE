@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { Share } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { Link } from "react-router-dom";
+
+import { getRecommendedProducts } from "../Pages/utils/Productdata"; // Adjust the import path as needed
 
 // Mock data for the dashboard
 const mockData = {
@@ -28,43 +31,12 @@ const mockData = {
     { label: "Oil", value: 55 },
     { label: "Freckles", value: 45 },
   ],
-  recommendedProducts: [
-    {
-      id: 1,
-      name: "Salicylic Acid Cleanser",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      id: 2,
-      name: "Niacinamide Serum",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      id: 3,
-      name: "Retinol Treatment",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      id: 4,
-      name: "Vitamin C Serum",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      id: 5,
-      name: "Hyaluronic Acid",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-  ],
 };
 
 const LandingPage = () => {
   const [userData] = useState(mockData); // Use dummy data directly
-  const [showAnalytics, setShowAnalytics] = useState(true);
+  const [showAnalytics] = useState(true);
+  const [recommendedProducts] = useState(getRecommendedProducts());
 
   const getSeverityColor = (severity) => {
     const colors = {
@@ -309,14 +281,16 @@ const LandingPage = () => {
 
           {/* Row 2, Column 2 */}
           <div
-            className="rounded-xl shadow-sm border border-cyan-500 animate-scale-in"
+            className="rounded-xl shadow-sm border border-cyan-500 animate-scale-in flex flex-col justify-between"
             style={{
+              height: "100%", // Let the parent grid control the height
+              minHeight: "270px", // Match skin score card (adjust if needed)
               boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)",
               animation: "scaleIn 0.2s ease-out forwards",
             }}
           >
-            <div className="p-4 md:p-6">
-              {/* Header with "See More" button */}
+            <div className="p-4 md:p-6 flex flex-col h-full">
+              {/* Header */}
               <div className="flex justify-between items-center mb-3 md:mb-4">
                 <h2 className="text-lg md:text-xl font-semibold">
                   Recently Recommended Products
@@ -332,13 +306,13 @@ const LandingPage = () => {
               {/* Horizontal Scrollable Cards */}
               <div className="overflow-x-auto hide-scrollbar">
                 <div className="flex space-x-3 pb-2 w-max">
-                  {userData.recommendedProducts.map((product, index) => (
+                  {recommendedProducts.slice(0, 7).map((product, index) => (
                     <div
                       key={product.id}
-                      className="flex-none w-28 md:w-36 rounded-lg overflow-hidden border border-cyan-500 transition-transform hover:transform hover:-translate-y-1 hover:shadow-lg"
+                      className="flex-none w-28 md:w-36 h-[160px] rounded-lg overflow-hidden border border-cyan-500 transition-transform hover:-translate-y-1 hover:shadow-lg"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
-                      <div className="h-28 md:h-36 w-full bg-gray-200 relative overflow-hidden">
+                      <div className="h-[80px] md:h-[90px] w-full bg-gray-200 relative overflow-hidden">
                         <img
                           src={product.image}
                           alt={product.name}
@@ -347,11 +321,11 @@ const LandingPage = () => {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                       </div>
-                      <div className="p-1 md:p-2">
+                      <div className="p-1 md:p-2 h-[70px] flex flex-col justify-between">
                         <h3 className="text-xs md:text-sm font-medium truncate">
                           {product.name}
                         </h3>
-                        <div className="mt-1 flex justify-between items-center">
+                        <div className="flex justify-between items-center">
                           <span className="text-[10px] md:text-xs text-gray-500">
                             Recommended
                           </span>
@@ -362,6 +336,16 @@ const LandingPage = () => {
                       </div>
                     </div>
                   ))}
+
+                  {/* See More Button */}
+                  <Link
+                    to="/route"
+                    className="flex-none w-28 md:w-36 h-[160px] flex items-center justify-center border border-dashed border-blue-400 text-blue-500 rounded-lg hover:bg-blue-50 transition"
+                  >
+                    <span className="text-sm md:text-base font-medium">
+                      See More →
+                    </span>
+                  </Link>
                 </div>
               </div>
             </div>
