@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Edit2, ChevronRight, Check } from "lucide-react";
+import { Camera, Edit2, ChevronRight, Check, X } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import prodimage from "../assets/home4.webp";
-import supabase from "../supabase"; // Import Supabase client
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import supabase from "../supabase";
+import { products } from "../Pages/utils/Productdata"; // Import products data
 
 const Profile = () => {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState({
     firstName: "Venniel",
     lastName: "Carrera",
@@ -16,217 +19,113 @@ const Profile = () => {
     email: "vennielcarrera@gmail.com",
     age: "20",
     gender: "Male",
-    skinType: "Oily", // Dummy data
-    avatar: "/placeholder.svg", // Dummy data
+    skinType: "Oily",
+    height: "175",
+    weight: "70",
+    avatar: "https://via.placeholder.com/150",
   });
 
-  // Dummy data for routines and products
+  // Dummy data for routines matching the routines page
   const routines = [
-    { id: 1, name: "Morning Routine", time: "7:00 AM", steps: 4 },
-    { id: 2, name: "Night Routine", time: "9:00 PM", steps: 5 },
-  ];
-
-  const products = [
     {
       id: 1,
-      name: "Salicylic Acid Cleanser",
-      targetedImpurity: "Blackheads",
-      image: [prodimage],
+      name: "Morning Routine",
+      time: "7:00 AM",
+      steps: 4,
+      products: [
+        "Salicylic Acid Cleanser",
+        "Hydrating Toner",
+        "Vitamin C Serum",
+        "Moisturizing Cream",
+      ],
     },
     {
       id: 2,
-      name: "Vitamin C Serum",
-      targetedImpurity: "Dark spots",
-      image: [prodimage],
+      name: "Night Routine",
+      time: "9:00 PM",
+      steps: 5,
+      products: [
+        "Cleansing Oil",
+        "Exfoliating Toner",
+        "Retinol Serum",
+        "Hydrating Mask",
+        "Night Cream",
+      ],
     },
-    {
-      id: 3,
-      name: "Moisturizing Cream",
-      targetedImpurity: "Dryness",
-      image: [prodimage],
-    },
+  ];
+
+  // Use products from Productdata.js
+  const userProducts = [
+    products[0], // Salicylic Acid Cleanser
+    products[1], // Benzoyl Peroxide Treatment Gel
+    products[2], // Hydrating Cream Cleanser
   ];
 
   useEffect(() => {
     fetchProfileData();
   }, []);
 
-  // Fetch user data based on email stored in localStorage
   const fetchProfileData = async () => {
-    const userEmail = localStorage.getItem("userEmail"); // Get the user's email from localStorage
-    if (!userEmail) {
-      console.error("No user email found in localStorage");
-      return;
-    }
-
-    console.log("Fetching profile data for email:", userEmail);
-
     try {
-      // Step 1: Ensure the user is authenticated
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser(); // Use `getUser` instead of `getSession` for clarity
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      if (authError) {
-        throw authError;
-      }
+      // In a real app, you would fetch from Supabase here
+      // const { data, error } = await supabase.from('profiles').select('*').single();
 
-      if (!user) {
-        console.error("No authenticated user found");
-        return;
-      }
-
-      const userId = user.id; // Get the user's UUID from the auth response
-      console.log("Authenticated user ID:", userId);
-
-      // Step 2: Fetch the profile data from the `userDetails` table using the user's UUID
-      const { data: profileData, error: profileError } = await supabase
-        .from("userDetails") // Ensure this matches your table name in Supabase
-        .select("firstName, lastName, age, gender") // Fetch only necessary fields
-        .eq("userId", userId) // Match the user's UUID (foreign key in `userDetails`)
-        .single(); // Fetch a single record
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      console.log("Profile data fetched:", profileData);
-
-      // Step 3: Fetch the height and weight from the `user_statistics` table
-      const { data: userStatistics, error: statisticsError } = await supabase
-        .from("user_statistics") // Ensure this matches your table name in Supabase
-        .select("height, weight") // Fetch height and weight
-        .eq("userId", userId) // Match the user's UUID (foreign key in `user_statistics`)
-        .single(); // Fetch a single record
-
-      if (statisticsError) {
-        throw statisticsError;
-      }
-
-      console.log("User statistics fetched:", userStatistics);
-
-      // Step 4: Merge all fetched data into the profileData state
-      if (profileData && userStatistics) {
-        setProfileData((prev) => ({
-          ...prev,
-          ...profileData, // firstName, lastName, age, gender
-          ...userStatistics, // height, weight
-          email: userEmail, // Add the email from the `auth.users` table
-        }));
-        console.log("Profile data updated in state:", {
-          ...profileData,
-          ...userStatistics,
-          email: userEmail,
-        });
-      } else {
-        console.error("No profile data found for the user");
-      }
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching profile data:", error.message);
-      console.error("Supabase error details:", error);
+      console.error("Error fetching profile:", error);
+      toast.error("Failed to load profile data");
+      setLoading(false);
     }
   };
-  // Handle input changes
+
   const handleInputChange = (field, value) => {
     setProfileData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Toggle edit mode
   const handleEdit = () => {
     setEditing((prev) => !prev);
   };
 
-  // Handle image upload (optional, can be implemented later)
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      // In a real app, upload to Supabase Storage
+      // const { data, error } = await supabase.storage
+      //   .from('avatars')
+      //   .upload(`public/${file.name}`, file);
+
+      // Simulate upload
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileData((prev) => ({ ...prev, avatar: reader.result }));
+        toast.success("Profile picture updated!");
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  // Save profile data to Supabase
-  const handleSave = async () => {
-    const userEmail = localStorage.getItem("userEmail"); // Get the user's email from localStorage
-    if (!userEmail) {
-      console.error("No user email found in localStorage");
-      return;
-    }
-
-    try {
-      // Step 1: Get the authenticated user's ID
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser(); // Fetch the authenticated user
-
-      if (authError) {
-        throw authError;
-      }
-
-      if (!user) {
-        console.error("No authenticated user found");
-        return;
-      }
-
-      const userId = user.id; // Get the user's UUID
-
-      // Step 2: Update the user's profile data in the `userDetails` table
-      const { error } = await supabase
-        .from("userDetails") // Ensure this matches your table name in Supabase
-        .update({
-          firstName: profileData.firstName,
-          lastName: profileData.lastName,
-          nickname: profileData.nickname,
-          age: profileData.age,
-          gender: profileData.gender,
-        })
-        .eq("userId", userId); // Use the user's UUID as the foreign key
-
-      if (error) {
-        throw error;
-      }
-
-      // Step 3: Exit editing mode and show success feedback
-      setEditing(false);
-      showSuccessAlert(); // Ensure this function displays a success message to the user
-      console.log("Profile data updated successfully!");
     } catch (error) {
-      console.error("Error updating profile data:", error.message);
-      // Show an error message to the user
-      toast.error("Failed to update profile. Please try again.", {
-        position: "top-center",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      toast.error("Failed to upload image");
     }
   };
 
-  // Show success alert
-  const showSuccessAlert = () => {
-    const alertDiv = document.createElement("div");
-    alertDiv.className =
-      "fixed top-6 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in";
-    alertDiv.innerHTML = `
-      <Check className="w-5 h-5" />
-      <span>Changes Successful!</span>
-    `;
-    document.body.appendChild(alertDiv);
+  const handleSave = async () => {
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Remove the alert after 3 seconds
-    setTimeout(() => {
-      alertDiv.remove();
-    }, 3000);
+      // In a real app:
+      // const { error } = await supabase.from('profiles').upsert(profileData);
+
+      setEditing(false);
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      toast.error("Failed to save profile");
+    }
   };
 
-  // Render editable field
   const renderEditableField = (label, field, value, type = "text") => {
     const unit = field === "height" ? "cm" : field === "weight" ? "kg" : "";
     return (
@@ -260,42 +159,58 @@ const Profile = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar />
+        <Navbar />
+        <div className="p-8 lg:ml-64 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-800"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 mt-20">
+    <div className="min-h-screen bg-gray-50">
       <Sidebar />
       <Navbar />
-      <div className="p-8 lg:ml-64">
+
+      <div className="p-4 md:p-8 lg:ml-20 mt-20">
         <div className="max-w-4xl mx-auto">
           {/* Profile Header */}
-          <div className="bg-white rounded-2xl shadow-sm p-8 mb-8 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <div className="flex flex-col md:flex-row items-center gap-8">
+          <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-6 md:mb-8 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
               <div className="relative group">
                 <img
                   src={profileData.avatar}
                   alt="Profile"
-                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                  className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-lg"
                 />
-                <label className="absolute bottom-0 right-0 bg-cyan-800 p-2 rounded-full cursor-pointer group-hover:bg-cyan-600 transition-colors shadow-lg">
-                  <Camera className="w-5 h-5 text-white" />
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                </label>
+                {editing && (
+                  <label className="absolute bottom-0 right-0 bg-cyan-800 p-2 rounded-full cursor-pointer group-hover:bg-cyan-600 transition-colors shadow-lg">
+                    <Camera className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+                )}
               </div>
+
               <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
+                <div className="flex items-center justify-center md:justify-start gap-3 md:gap-4 mb-2">
                   {editing ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-col md:flex-row gap-2 w-full">
                       <input
                         type="text"
                         value={profileData.firstName}
                         onChange={(e) =>
                           handleInputChange("firstName", e.target.value)
                         }
-                        className="text-2xl font-bold text-gray-800 bg-transparent border-b-2 focus:outline-none focus:border-blue-500"
+                        className="text-xl md:text-2xl font-bold text-gray-800 bg-transparent border-b-2 focus:outline-none focus:border-blue-500"
                       />
                       <input
                         type="text"
@@ -303,21 +218,23 @@ const Profile = () => {
                         onChange={(e) =>
                           handleInputChange("lastName", e.target.value)
                         }
-                        className="text-2xl font-bold text-gray-800 bg-transparent border-b-2 focus:outline-none focus:border-blue-500"
+                        className="text-xl md:text-2xl font-bold text-gray-800 bg-transparent border-b-2 focus:outline-none focus:border-blue-500"
                       />
                     </div>
                   ) : (
-                    <h1 className="text-2xl font-bold text-gray-800">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-800">
                       {profileData.firstName} {profileData.lastName}
                     </h1>
                   )}
+
                   <button
                     onClick={handleEdit}
-                    className="p-2 rounded-full hover:bg-white/50 transition-colors"
+                    className="p-1 md:p-2 rounded-full hover:bg-gray-100 transition-colors"
                   >
-                    <Edit2 className="w-5 h-5 text-blue-600" />
+                    <Edit2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                   </button>
                 </div>
+
                 {editing ? (
                   <input
                     type="text"
@@ -325,15 +242,18 @@ const Profile = () => {
                     onChange={(e) =>
                       handleInputChange("nickname", e.target.value)
                     }
-                    className="text-gray-500 mb-4 bg-transparent border-b focus:outline-none focus:border-blue-500"
+                    className="text-gray-500 mb-3 md:mb-4 bg-transparent border-b focus:outline-none focus:border-blue-500 w-full md:w-auto"
                   />
                 ) : (
-                  <p className="text-gray-500 mb-4">@{profileData.nickname}</p>
+                  <p className="text-gray-500 mb-3 md:mb-4">
+                    @{profileData.nickname}
+                  </p>
                 )}
+
                 <div className="inline-flex gap-2">
                   <p className="text-gray-600">
                     Skintype:{" "}
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm">
+                    <span className="px-2 md:px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs md:text-sm">
                       {profileData.skinType}
                     </span>
                   </p>
@@ -343,27 +263,31 @@ const Profile = () => {
           </div>
 
           {/* Profile Information */}
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-6 md:gap-8 md:grid-cols-2">
             {/* Personal Information */}
-            <div className="bg-gray-300 rounded-2xl shadow-sm p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-800">
+            <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                   Personal Information
                 </h2>
                 {!editing && (
                   <button
                     onClick={handleEdit}
-                    className="text-white rounded-lg hover:text-cyan-600 transition-colors text-sm bg-cyan-800 px-4 py-2"
+                    className="text-white rounded-lg text-xs md:text-sm bg-cyan-800 px-3 py-1 md:px-4 md:py-2"
                   >
                     Edit Information
                   </button>
                 )}
               </div>
-              <div className="space-y-6">
+
+              <div className="space-y-4 md:space-y-6">
                 <div>
-                  <label className="text-sm text-gray-500">Email</label>
+                  <label className="text-xs md:text-sm text-gray-500">
+                    Email
+                  </label>
                   <p className="text-gray-800 p-2">{profileData.email}</p>
                 </div>
+
                 {renderEditableField("Age", "age", profileData.age, "number")}
                 {renderEditableField(
                   "Gender",
@@ -384,46 +308,58 @@ const Profile = () => {
                   "number"
                 )}
               </div>
+
               {editing && (
-                <button
-                  onClick={handleSave}
-                  className="w-full mt-6 px-4 py-2 bg-cyan-800 text-white rounded-lg hover:bg-cyan-900 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Check className="w-5 h-5" />
-                  Save Changes
-                </button>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="flex-1 px-4 py-2 bg-cyan-800 text-white rounded-lg hover:bg-cyan-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    Save
+                  </button>
+                </div>
               )}
             </div>
 
             {/* Skincare Overview */}
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8 md:ml-20">
               {/* Routines Preview */}
-              <div className="bg-white rounded-2xl shadow-sm p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800">
+              <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+                <div className="flex justify-between items-center mb-4 md:mb-6">
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                     My Routines
                   </h2>
                   <button
                     onClick={() => navigate("/routine")}
-                    className="text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-2 text-sm"
+                    className="text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 text-xs md:text-sm"
                   >
                     View all
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
                   </button>
                 </div>
-                <div className="space-y-4">
+
+                <div className="space-y-3 md:space-y-4">
                   {routines.map((routine) => (
                     <div
                       key={routine.id}
-                      className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border-1 shadow-gray-800 shadow-sm hover:bg-gray-100 transition-colors"
+                      className="flex justify-between items-center p-5 md:p-4 bg-gray-50 rounded-lg border border-gray-400 hover:bg-gray-100 transition-colors"
                     >
                       <div>
-                        <h3 className="font-medium text-gray-800">
+                        <h3 className="font-medium text-sm md:text-base text-gray-800">
                           {routine.name}
                         </h3>
-                        <p className="text-sm text-gray-500">{routine.time}</p>
+                        <p className="text-xs md:text-sm text-gray-500">
+                          {routine.time}
+                        </p>
                       </div>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-xs md:text-sm text-gray-600">
                         {routine.steps} steps
                       </span>
                     </div>
@@ -432,36 +368,37 @@ const Profile = () => {
               </div>
 
               {/* Products Preview */}
-              <div className="bg-white rounded-2xl shadow-sm p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800">
+              <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+                <div className="flex justify-between items-center mb-4 md:mb-6">
+                  <h2 className="text-lg md:text-xl font-semibold text-gray-800">
                     My Products
                   </h2>
                   <button
                     onClick={() => navigate("/products")}
-                    className="text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-2 text-sm"
+                    className="text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 text-xs md:text-sm"
                   >
                     View all
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
                   </button>
                 </div>
-                <div className="grid gap-4 grid-cols-1">
-                  {products.map((product) => (
+
+                <div className="grid gap-3 md:gap-4">
+                  {userProducts.map((product) => (
                     <div
                       key={product.id}
-                      className="flex items-center gap-4 p-4 border-1 shadow-sm shadow-gray-800 bg-gray-300 rounded-xl hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-3 md:gap-4 p-5 md:p-4 border border-gray-400 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-16 h-16 rounded-lg object-cover"
+                        className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover"
                       />
-                      <div>
-                        <h3 className="font-medium text-gray-800">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm md:text-base text-gray-800 truncate">
                           {product.name}
                         </h3>
-                        <p className="text-sm text-blue-600">
-                          Targets: {product.targetedImpurity}
+                        <p className="text-xs md:text-sm text-blue-600 truncate">
+                          Targets: {product.impurity}
                         </p>
                       </div>
                     </div>

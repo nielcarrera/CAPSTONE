@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Edit } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import RecommendationModal from "../components/RecommendationModal";
@@ -12,47 +12,42 @@ import {
   getColorByValue,
 } from "../Pages/utils/SkinAnalytics";
 
+// Mock user data (would come from your auth/context in real app)
+const MOCK_USER_DATA = {
+  firstName: "Dannjiro Pon-Chan",
+  skinType: "Combination",
+};
+
+const skinTypes = ["Normal", "Dry", "Oily", "Combination", "Sensitive"];
+
 const ProductRecommendations = () => {
-  // State for date selection
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedDate, setSelectedDate] = useState(
     searchParams.get("date") || Object.keys(ANALYSIS_DATA)[0]
   );
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-
-  // State for data loading
   const [isLoading, setIsLoading] = useState(false);
   const [currentData, setCurrentData] = useState(null);
   const [sortedImpurities, setSortedImpurities] = useState([]);
-
-  // Modal state
   const [showDialog, setShowDialog] = useState(false);
   const [selectedImpurity, setSelectedImpurity] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isEditingSkinType, setIsEditingSkinType] = useState(false);
+  const [userData, setUserData] = useState(MOCK_USER_DATA);
 
-  // Database-ready function to fetch data (using dummy data temporarily)
   const fetchAnalysisData = async (date) => {
     setIsLoading(true);
     try {
-      // In a real app, this would be an API call:
-      // const response = await fetch(`/api/analysis?date=${date}`);
-      // const data = await response.json();
-
-      // Using dummy data temporarily:
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 500));
       const data =
         ANALYSIS_DATA[date] || ANALYSIS_DATA[Object.keys(ANALYSIS_DATA)[0]];
-
       setCurrentData(data);
-
-      // Process the data
       const enriched = enrichImpurities(data.impurities, skinIssues);
-      const sorted = [...enriched].sort((a, b) => b.value - a.value);
-      setSortedImpurities(sorted);
-
-      // Update URL with selected date
-      setSearchParams({ date });
+      setSortedImpurities([...enriched].sort((a, b) => b.value - a.value));
     } catch (error) {
-      console.error("Error fetching analysis data:", error);
-      // Fallback to first available date if error occurs
+      console.error("Error:", error);
       const firstDate = Object.keys(ANALYSIS_DATA)[0];
       setCurrentData(ANALYSIS_DATA[firstDate]);
       setSelectedDate(firstDate);
@@ -61,31 +56,131 @@ const ProductRecommendations = () => {
     }
   };
 
-  // Load data when date changes
+  const handleUpdateSkinType = (newType) => {
+    setUserData((prev) => ({ ...prev, skinType: newType }));
+    setIsEditingSkinType(false);
+    // In a real app, you would save to your backend here
+    // await updateUserProfile({ skinType: newType });
+  };
+
+  const handleGenerateRecommendations = async (impurity) => {
+    setIsGenerating(true);
+    try {
+      // This is where you would call your model API
+      // const response = await fetch('/api/generate-recommendations', {
+      //   method: 'POST',
+      //   body: JSON.stringify({
+      //     impurity: impurity.label,
+      //     severity: impurity.value,
+      //     skinType: userData.skinType,
+      //     date: selectedDate
+      //   })
+      // });
+      // const recommendations = await response.json();
+
+      // Simulate API call delay (2-5 seconds)
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // Navigate to results page with the generated data
+      navigate("/recommendations/results", {
+        state: {
+          recommendations: generateMockRecommendations(impurity),
+          impurity,
+          skinType: userData.skinType,
+          date: selectedDate,
+        },
+      });
+    } catch (error) {
+      console.error("Generation failed:", error);
+      alert("Failed to generate recommendations. Please try again.");
+    } finally {
+      setIsGenerating(false);
+      setShowDialog(false);
+    }
+  };
+
+  // Helper function for mock data (remove in production)
+  const generateMockRecommendations = (impurity) => {
+    const products = [
+      { name: "Cleansing Gel", brand: "CeraVe", type: "cleanser" },
+      { name: "Hydrating Toner", brand: "Paula's Choice", type: "toner" },
+      { name: "Treatment Serum", brand: "The Ordinary", type: "serum" },
+    ];
+    return {
+      routine: products,
+      explanation: `These products help address ${
+        impurity.label
+      } for ${userData.skinType.toLowerCase()} skin by ${impurity.description.toLowerCase()}`,
+    };
+  };
+
   useEffect(() => {
     fetchAnalysisData(selectedDate);
   }, [selectedDate]);
 
-  // Handle date selection
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
-    setIsDateDropdownOpen(false);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 p-4 ml-[240px] relative">
+    <div className="min-h-screen bg-gray-50 p-4 md:ml-[240px] relative">
       <Sidebar />
       <Navbar />
 
-      {/* Main Content Area */}
-      <div className="mt-20 max-w-6xl mx-auto space-y-8">
-        {/* Back Button and Date Selector */}
+      <div className="mt-20 max-w-6xl mx-auto space-y-8 px-4">
+        {/* User Profile Header with Skin Type */}
+        <div className="bg-white p-6 rounded-xl shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">
+                Product Recommendations
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Personalized suggestions based on your skin analysis
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {!isEditingSkinType ? (
+                <div className="flex items-center bg-gray-100 rounded-full px-4 py-2">
+                  <span className="text-lg font-medium">Skin Type:</span>
+                  <span className="ml-2 text-xl text-cyan-800 font-semibold">
+                    {userData.skinType}
+                  </span>
+                  <button
+                    onClick={() => setIsEditingSkinType(true)}
+                    className="ml-2 text-gray-500 hover:text-gray-700"
+                  >
+                    <Edit size={18} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={userData.skinType}
+                    onChange={(e) => handleUpdateSkinType(e.target.value)}
+                    className="bg-gray-100 text-lg rounded-full px-4 py-2 appearance-none"
+                  >
+                    {skinTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => setIsEditingSkinType(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    ✓
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Date Selector */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          {/* Date Selector */}
-          <div className="relative bg-white rounded-lg shadow-sm border border-gray-300">
+          <div className="relative w-full md:w-64">
             <button
               onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-              className="flex items-center gap-2 px-4 py-2 w-full md:w-64 justify-between"
+              className="flex items-center gap-2 px-4 py-2 w-full justify-between bg-white rounded-lg shadow-sm border border-gray-300"
               disabled={isLoading}
             >
               <span>{selectedDate}</span>
@@ -108,7 +203,10 @@ const ProductRecommendations = () => {
                   {Object.keys(ANALYSIS_DATA).map((date) => (
                     <button
                       key={date}
-                      onClick={() => handleDateSelect(date)}
+                      onClick={() => {
+                        setSelectedDate(date);
+                        setIsDateDropdownOpen(false);
+                      }}
                       className={`w-full px-4 py-2 text-left hover:bg-gray-50 ${
                         date === selectedDate
                           ? "text-violet-600 font-medium"
@@ -124,47 +222,26 @@ const ProductRecommendations = () => {
           </div>
         </div>
 
-        {/* Page Header */}
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">
-                Product Recommendations
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Personalized product suggestions based on your skin analysis
-              </p>
-            </div>
-            {currentData && (
-              <div className="mt-4 md:mt-0 text-sm text-gray-500">
-                Last analyzed: {currentData.timestamp || "N/A"}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Loading State */}
-        {isLoading && (
+        {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
-        )}
-
-        {/* Product Recommendations */}
-        {!isLoading && currentData && (
+        ) : (
+          /* Recommendations List */
           <div className="bg-white p-6 rounded-xl shadow-sm">
-            <div className="space-y-6">
-              {sortedImpurities.length > 0 ? (
-                sortedImpurities.map((impurity) => (
+            {sortedImpurities.length > 0 ? (
+              <div className="space-y-6">
+                {sortedImpurities.map((impurity) => (
                   <motion.div
-                    key={`${impurity.label}-${selectedDate}`} // Unique key with date
+                    key={`${impurity.label}-${selectedDate}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                     className="flex flex-col p-4 border border-gray-100 rounded-lg"
                   >
                     <div className="flex flex-col md:flex-row items-start gap-4">
-                      <div className="flex-shrink-0 w-full md:w-35 h-35 rounded-md overflow-hidden">
+                      <div className="w-full md:w-38 h-40 rounded-md mr-5  overflow-hidden flex-shrink-0">
                         <img
                           src={impurity.image}
                           alt={impurity.label}
@@ -174,19 +251,19 @@ const ProductRecommendations = () => {
                       <div className="flex-grow w-full">
                         <div className="flex flex-col md:flex-row md:justify-between md:items-start">
                           <div>
-                            <h3 className="font-semibold mb-3 text-xl">
+                            <h3 className="font-semibold text-lg md:text-xl">
                               {impurity.label}
                             </h3>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 mt-1">
                               {impurity.description}
                             </p>
                           </div>
-                          <span className="text-md font-lg mb-3 px-2 py-1 rounded">
+                          <span className="text-lg font-medium mt-2 md:mt-0">
                             {impurity.value}%
                           </span>
                         </div>
                         <div className="mt-3">
-                          <div className="h-5 w-full bg-gray-300 rounded-sm overflow-hidden">
+                          <div className="h-5 w-full mt-5 bg-gray-200 rounded-sm overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${impurity.value}%` }}
@@ -204,25 +281,22 @@ const ProductRecommendations = () => {
                     <div className="mt-4 flex justify-center">
                       <button
                         onClick={() => {
-                          setSelectedImpurity({
-                            ...impurity,
-                            analysisDate: selectedDate, // Include date in selection
-                          });
+                          setSelectedImpurity(impurity);
                           setShowDialog(true);
                         }}
-                        className="px-6 py-3 bg-cyan-900 text-white rounded-lg hover:bg-gray-600 w-full md:w-auto"
+                        className="px-6 py-2 bg-cyan-900 text-white rounded-lg hover:bg-cyan-800 transition-colors"
                       >
-                        Generate Product Recommendations
+                        Generate Recommendations
                       </button>
                     </div>
                   </motion.div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No skin issues detected for this analysis date.
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No skin issues detected for this analysis date.
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -231,7 +305,9 @@ const ProductRecommendations = () => {
         showDialog={showDialog}
         setShowDialog={setShowDialog}
         impurity={selectedImpurity}
-        analysisDate={selectedDate}
+        onGenerate={handleGenerateRecommendations}
+        isGenerating={isGenerating}
+        skinType={userData.skinType}
       />
     </div>
   );

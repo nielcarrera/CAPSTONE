@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Share, HelpCircle, X } from "lucide-react";
+import { ChevronDown, Share, HelpCircle, X, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Radar,
@@ -44,6 +44,7 @@ const Dashboard = () => {
   const sortedImpurities = [...enrichedImpurities].sort(
     (a, b) => b.value - a.value
   );
+  const topThreeImpurities = sortedImpurities.slice(0, 3);
   const skinScore = computeSkinScore(currentData.impurities);
 
   // Tour configuration
@@ -58,7 +59,7 @@ const Dashboard = () => {
       id: "key-problems",
       title: "Key Problems",
       content:
-        "See your top skin concerns ranked by severity with visual indicators.",
+        "Your top 3 skin concerns ranked by severity. These need immediate attention.",
     },
     {
       id: "skin-score",
@@ -118,14 +119,14 @@ const Dashboard = () => {
   const handleShareScore = () => alert(`Sharing skin score: ${skinScore}`);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 ml-[240px] relative">
+    <div className="min-h-screen bg-gray-50 p-4 ml-0 md:ml-[240px] relative">
       <Sidebar />
       <Navbar />
 
       {/* Dark overlay when tour is active */}
       {showTour && (
         <div
-          className="fixed inset-1  bg-opacity-30 z-20 pointer-events-none"
+          className="fixed inset-0  bg-opacity-30 z-20 pointer-events-none"
           style={{ marginLeft: "240px" }}
         />
       )}
@@ -146,7 +147,7 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 border-1 border-cyan-800 bg-white rounded-lg shadow-xl w-11/12 max-w-md p-4"
+            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 border border-cyan-800 bg-white rounded-lg shadow-xl w-11/12 max-w-md p-4"
             style={{ marginLeft: "120px" }}
           >
             <div className="flex justify-between items-start mb-2">
@@ -189,11 +190,11 @@ const Dashboard = () => {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <div className="mt-20 max-w-6xl mx-auto space-y-8">
+      <div className="mt-20 max-w-6xl mx-auto space-y-8 px-4">
         {/* Date Selector */}
         <div
           id="date-selector"
-          className={`relative bg-white rounded-lg shadow-sm border-1 border-cyan-700 transition-all duration-300 ${
+          className={`relative bg-white rounded-lg shadow-sm border border-cyan-700 transition-all duration-300 ${
             isHighlighted("date-selector")
               ? "ring-4 ring-blue-500 z-10"
               : showTour
@@ -203,10 +204,15 @@ const Dashboard = () => {
         >
           <button
             onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 w-full"
+            className="flex items-center gap-2 px-4 py-2 w-full justify-between"
           >
             <span>{selectedDate}</span>
-            <ChevronDown size={20} />
+            <ChevronDown
+              size={20}
+              className={`transition-transform ${
+                isDateDropdownOpen ? "rotate-180" : ""
+              }`}
+            />
           </button>
 
           <AnimatePresence>
@@ -215,7 +221,7 @@ const Dashboard = () => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg z-10"
+                className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg z-10 border border-gray-200"
               >
                 {Object.keys(ANALYSIS_DATA).map((date) => (
                   <button
@@ -225,7 +231,7 @@ const Dashboard = () => {
                       setIsDateDropdownOpen(false);
                     }}
                     className={`w-full px-4 py-2 text-left hover:bg-gray-50 ${
-                      date === selectedDate ? "text-violet-600" : ""
+                      date === selectedDate ? "text-violet-600 font-medium" : ""
                     }`}
                   >
                     {date}
@@ -247,23 +253,43 @@ const Dashboard = () => {
               : ""
           }`}
         >
-          <h2 className="text-xl font-bold mb-10">Key Problems Detected</h2>
-          <div className="grid grid-cols-3 gap-10">
-            {currentData.keyProblems.map((problem) => (
-              <div key={problem.label} className="space-y-2">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold">Key Problems Detected</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {topThreeImpurities.map((problem) => (
+              <div
+                key={problem.label}
+                className="space-y-4 p-4 border border-gray-200 rounded-lg bg-white"
+              >
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold">{problem.label}</span>
-                  <span>{problem.value}%</span>
+                  <span className="font-semibold text-gray-800">
+                    {problem.label}
+                  </span>
+                  <span
+                    className="font-bold"
+                    style={{ color: getColorByValue(problem.value) }}
+                  >
+                    {problem.value}%
+                  </span>
                 </div>
-                <div className="relative w-10/12 h-6 bg-gray-300 rounded-xl overflow-hidden">
+                <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-xl ${
-                      SEVERITY_COLORS[problem.severity] ||
-                      SEVERITY_COLORS.default
-                    }`}
-                    style={{ width: `${problem.value}%` }}
+                    className={`h-full rounded-full`}
+                    style={{
+                      width: `${problem.value}%`,
+                      backgroundColor: getColorByValue(problem.value),
+                    }}
                   />
                 </div>
+                <p className="text-xs text-gray-600">{problem.description}</p>
+                <Link
+                  to={`/prodrecco?focus=${problem.label.toLowerCase()}`}
+                  className="block text-center rounded-md text-sm px-3 py-2 bg-cyan-800 text-white  hover:bg-cyan-700 transition-colors"
+                >
+                  Get Recommendations
+                </Link>
               </div>
             ))}
           </div>
@@ -272,16 +298,16 @@ const Dashboard = () => {
         {/* Skin Score Card */}
         <div
           id="skin-score"
-          className={`bg-gray-800 rounded-xl mx-6 px-5 shadow-sm overflow-hidden transition-all duration-300 ${
+          className={`bg-gray-800 rounded-xl shadow-sm overflow-hidden transition-all duration-300 ${
             isHighlighted("skin-score")
               ? "ring-4 ring-blue-500 z-10"
               : showTour
               ? "opacity-40"
               : ""
           }`}
-          style={{ height: "180px" }}
+          style={{ minHeight: "180px" }}
         >
-          <div className="p-3 md:p-4 h-full flex flex-col">
+          <div className="p-4 h-full flex flex-col">
             <div className="flex justify-between items-start">
               <h2 className="text-lg md:text-xl text-white font-semibold">
                 Overall Skin Score
@@ -290,7 +316,7 @@ const Dashboard = () => {
                 onClick={handleShareScore}
                 className="text-gray-300 hover:text-white"
               >
-                <Share className="w-7 h-7" />
+                <Share className="w-5 h-5" />
               </button>
             </div>
             <div className="flex-grow flex flex-col items-center justify-center">
@@ -320,11 +346,11 @@ const Dashboard = () => {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Radar Chart */}
           <section
             id="spider-graph"
-            className={`bg-white p-8 rounded-xl shadow-cyan-800 transition-all duration-300 ${
+            className={`bg-white p-6 rounded-xl shadow-sm transition-all duration-300 ${
               isHighlighted("spider-graph")
                 ? "ring-4 ring-blue-500 z-10"
                 : showTour
@@ -335,7 +361,7 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold mb-4">
               Skin Issues Distribution
             </h2>
-            <div className="h-[400px]">
+            <div className="h-[300px] md:h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={currentData.radarData}>
                   <PolarGrid stroke="#e5e7eb" />
@@ -405,12 +431,13 @@ const Dashboard = () => {
         </div>
 
         {/* View Recommendations Button */}
-        <div className="flex justify-center">
+        <div className="flex justify-center pb-8">
           <Link
-            to="/product-recommendations"
-            className="px-6 py-3 bg-cyan-900 text-white rounded-lg hover:bg-gray-600 text-lg font-medium"
+            to="/prodrecco"
+            className="px-6 py-3 bg-cyan-800 text-white rounded-lg hover:bg-cyan-700 text-md font-sm transition-colors flex items-center"
           >
-            View Product Recommendations
+            View Complete Product Recommendations
+            <ArrowRight size={20} className="ml-2" />
           </Link>
         </div>
       </div>
