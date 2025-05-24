@@ -1,228 +1,156 @@
 // src/Pages/utils/Productdata.js
+
 export const products = [
-  // OILY SKIN - WHITEHEADS (FACE)
   {
     id: "1",
     name: "Salicylic Acid Cleanser",
-
     description: "Dissolves excess oil and clears pores",
-    image:
-      "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=500",
     severity: "mild",
     type: "cleanser",
     impurity: "whiteheads",
     skinType: "oily",
     area: "face",
-    ingredients: [
-      { name: "2% Salicylic Acid", benefit: "Unclogs pores" },
-      { name: "Niacinamide", benefit: "Reduces inflammation" },
-    ],
-    effects: [
-      "Clears whiteheads",
-      "Reduces excess oil",
-      "Prevents future breakouts",
-    ],
+    ingredients: ["2% Salicylic Acid", "Niacinamide"],
+    effects: ["Clears whiteheads", "Reduces oil", "Prevents future breakouts"],
+    usage: "Use twice daily; rinse thoroughly",
+    cautions:
+      "May cause dryness or irritation. Avoid mixing with strong acids or retinoids.",
     createdAt: "2023-10-01",
   },
   {
     id: "2",
     name: "Benzoyl Peroxide Treatment Gel",
-
     description: "Treats severe acne and whiteheads",
-    image:
-      "https://images.unsplash.com/photo-1611077544417-2fc92be21ccf?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    image: "https://images.unsplash.com/photo-1611077544417-2fc92be21ccf?w=500",
     severity: "severe",
     type: "treatment",
     impurity: "whiteheads",
     skinType: "oily",
     area: "face",
-    ingredients: [
-      { name: "10% Benzoyl Peroxide", benefit: "Kills acne bacteria" },
-      { name: "Aloe Vera", benefit: "Soothes skin" },
-    ],
+    ingredients: ["10% Benzoyl Peroxide", "Aloe Vera"],
     effects: [
-      "Targets severe whiteheads",
+      "Treats severe breakouts",
       "Reduces inflammation",
-      "Prevents future breakouts",
+      "Clears pores",
     ],
-    createdAt: "2023-09-20",
+    usage: "Apply thin layer to affected area once daily at night",
+    cautions: "Avoid contact with eyes. May bleach fabrics.",
+    createdAt: "2023-09-12",
   },
-  // DRY SKIN - WHITEHEADS (FACE)
   {
     id: "3",
     name: "Hydrating Cream Cleanser",
-
     description: "Cleanses while maintaining hydration",
-    image:
-      "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    image: "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?w=500",
     severity: "mild",
     type: "cleanser",
     impurity: "whiteheads",
     skinType: "dry",
     area: "face",
-    ingredients: [
-      { name: "Hyaluronic Acid", benefit: "Deep hydration" },
-      { name: "Aloe Vera", benefit: "Soothes skin" },
-    ],
-    effects: [
-      "Gentle cleansing",
-      "Maintains moisture barrier",
-      "Prevents dryness",
-    ],
-    createdAt: "2023-08-15",
+    ingredients: ["Hyaluronic Acid", "Aloe Vera"],
+    effects: ["Maintains moisture", "Gentle cleanse", "Prevents dryness"],
+    usage: "Use morning and night on damp skin.",
+    cautions: "For external use only. Discontinue if irritation occurs.",
+    createdAt: "2023-08-18",
   },
-  // COMBINATION SKIN - PORES (FACE)
   {
     id: "4",
-    name: "Pore-Refining Toner",
-
-    description: "Controls oil while reducing inflammation",
-    image:
-      "https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+    name: "2% BHA Liquid Exfoliant",
+    description: "Unclogs pores and prevents whiteheads",
+    image: "https://images.unsplash.com/photo-1607435098112-fdbb0c2e667e?w=500",
+    severity: "moderate",
+    type: "exfoliant",
+    impurity: "whiteheads",
+    skinType: "oily",
+    area: "face",
+    ingredients: ["Salicylic Acid", "Green Tea"],
+    effects: ["Clears whiteheads", "Controls oil", "Smooths texture"],
+    usage: "Use 2–3x per week in PM only; follow with moisturizer",
+    cautions: "For external use only. Discontinue if irritation occurs.",
+    createdAt: "2023-07-21",
+  },
+  {
+    id: "5",
+    name: "Retinoid Cream",
+    description: "Clears persistent whiteheads and reduces inflammation",
+    image: "https://images.unsplash.com/photo-1617127365659-ecf2932c6d58?w=500",
+    severity: "severe",
+    type: "treatment",
+    impurity: "whiteheads",
+    skinType: "normal",
+    area: "face",
+    ingredients: ["Retinol", "Tretinoin"],
+    effects: ["Fights whiteheads", "Improves skin texture", "Reduces acne"],
+    usage: "Start with 2–3x/week at night, increase as tolerated",
+    cautions:
+      "Apply only at night. Use sunscreen during the day. May cause purging.",
+    createdAt: "2023-06-03",
+  },
+  {
+    id: "6",
+    name: "Glycolic Acid + BHA Toner",
+    description: "Exfoliates and clears clogged pores",
+    image: "https://images.unsplash.com/photo-1611042553484-5383a234b541?w=500",
     severity: "moderate",
     type: "toner",
     impurity: "pores",
     skinType: "combination",
     area: "face",
-    ingredients: [
-      { name: "Witch Hazel", benefit: "Tightens pores" },
-      { name: "Green Tea", benefit: "Reduces inflammation" },
-    ],
-    effects: [
-      "Minimizes pore appearance",
-      "Balances oil production",
-      "Soothes skin",
-    ],
-    createdAt: "2023-07-10",
+    ingredients: ["Glycolic Acid", "Salicylic Acid"],
+    effects: ["Refines pores", "Reduces oil", "Prevents acne"],
+    usage: "Use 2–3x per week in the evening.",
+    cautions: "Do not use on broken or irritated skin. Limit sun exposure.",
+    createdAt: "2023-05-10",
   },
-  // SENSITIVE SKIN - REDNESS (FACE)
   {
-    id: "5",
-    name: "Centella Soothing Toner",
-
-    description: "Soothes irritation and hydrates skin",
-    image:
-      "https://images.unsplash.com/photo-1615397349754-cfa2066a298e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-    severity: "moderate",
-    type: "toner",
+    id: "7",
+    name: "Soothing Cleansing Foam",
+    description: "Gently cleanses and calms irritated skin",
+    image: "https://images.unsplash.com/photo-1615397349754-cfa2066a298e?w=500",
+    severity: "mild",
+    type: "cleanser",
     impurity: "redness",
     skinType: "sensitive",
     area: "face",
-    ingredients: [
-      { name: "Centella Asiatica", benefit: "Reduces redness" },
-      { name: "Allantoin", benefit: "Soothes irritation" },
-    ],
-    effects: [
-      "Calms sensitive skin",
-      "Reduces redness",
-      "Strengthens skin barrier",
-    ],
-    createdAt: "2023-06-05",
-  },
-  // Other products (FACE)
-  {
-    id: "6",
-    name: "BHA + AHA Exfoliant",
-
-    description: "Clears pores and dissolves blackheads",
-    image:
-      "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-    severity: "moderate",
-    type: "exfoliant",
-    impurity: "blackheads",
-    skinType: "oily",
-    area: "face",
-    ingredients: [
-      { name: "Salicylic Acid", benefit: "Unclogs pores" },
-      { name: "Glycolic Acid", benefit: "Exfoliates surface" },
-    ],
-    effects: [
-      "Removes blackheads",
-      "Prevents future clogging",
-      "Smooths skin texture",
-    ],
-    createdAt: "2023-05-01",
-  },
-  // BODY PRODUCTS
-  {
-    id: "7",
-    name: "Body Acne Wash",
-
-    description: "Treats acne on back and chest",
-    image:
-      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-
-    type: "cleanser",
-    bodyPart: "back",
-    area: "body",
-    ingredients: [
-      { name: "Salicylic Acid", benefit: "Unclogs pores" },
-      { name: "Aloe Vera", benefit: "Soothes skin" },
-    ],
-    effects: [
-      "Clears body acne",
-      "Reduces inflammation",
-      "Prevents future breakouts",
-    ],
-    createdAt: "2023-04-15",
+    ingredients: ["Chamomile", "Oat Extract"],
+    effects: ["Gentle cleanse", "Calms redness", "Hydrates skin"],
+    usage: "Use once or twice daily with lukewarm water.",
+    cautions: "Patch test recommended for sensitive skin.",
+    createdAt: "2023-04-01",
   },
   {
     id: "8",
-    name: "Keratosis Pilaris Lotion",
-
-    description: "Treats rough bumps on arms and legs",
-    image:
-      "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-
-    type: "moisturizer",
-    bodyPart: "arm",
-    area: "body",
-    ingredients: [
-      { name: "Lactic Acid", benefit: "Exfoliates skin" },
-      { name: "Ceramides", benefit: "Restores moisture barrier" },
-    ],
-    effects: ["Smooths rough skin", "Reduces bumps", "Hydrates dry skin"],
-    createdAt: "2023-03-10",
+    name: "Adapalene 0.1% Gel",
+    description: "Reduces comedones and prevents new ones",
+    image: "https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c?w=500",
+    severity: "severe",
+    type: "treatment",
+    impurity: "blackheads",
+    skinType: "combination",
+    area: "face",
+    ingredients: ["Adapalene"],
+    effects: ["Prevents breakouts", "Reduces blackheads", "Smooths skin"],
+    usage: "Apply at night; begin 2x/week and increase as tolerated.",
+    cautions:
+      "Apply only at night. Use sunscreen during the day. May cause purging.",
+    createdAt: "2023-03-22",
   },
   {
     id: "9",
-    name: "Foot Repair Cream",
-
-    description: "Intensive foot moisturizer for dry, cracked feet",
-    image:
-      "https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-
-    type: "moisturizer",
-    bodyPart: "feet",
-    area: "body",
-    ingredients: [
-      { name: "Allantoin", benefit: "Heals cracked skin" },
-      { name: "Glycerin", benefit: "Deep hydration" },
-    ],
-    effects: [
-      "Repairs dry, cracked skin",
-      "Provides long-lasting moisture",
-      "Creates protective barrier",
-    ],
-    createdAt: "2023-02-05",
-  },
-  {
-    id: "10",
-    name: "Neck Firming Cream",
-
-    description: "Targets signs of aging on neck and décolletage",
-    image:
-      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-
-    type: "treatment",
-    bodyPart: "neck",
-    area: "body",
-    ingredients: [
-      { name: "Retinol", benefit: "Stimulates collagen" },
-      { name: "Niacinamide", benefit: "Brightens skin" },
-    ],
-    effects: ["Firms neck skin", "Reduces fine lines", "Improves elasticity"],
-    createdAt: "2023-01-01",
+    name: "Lactic Acid 5% Serum",
+    description: "Gently exfoliates and reduces clogged pores",
+    image: "https://images.unsplash.com/photo-1556229010-aa3c453b1af8?w=500",
+    severity: "moderate",
+    type: "exfoliant",
+    impurity: "pores",
+    skinType: "dry",
+    area: "face",
+    ingredients: ["Lactic Acid", "Hyaluronic Acid"],
+    effects: ["Removes buildup", "Improves skin texture", "Hydrates"],
+    usage: "Use 2–3x per week in PM only.",
+    cautions: "Do not use on broken or irritated skin. Limit sun exposure.",
+    createdAt: "2023-02-18",
   },
 ];
 
@@ -258,6 +186,5 @@ export const sortOptions = [
 ];
 
 export const getRecommendedProducts = () => {
-  // Return up to 7 products
   return products.slice(0, 7);
 };

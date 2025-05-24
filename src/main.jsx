@@ -35,9 +35,7 @@ const router = createBrowserRouter([
   },
   { path: "/profile", element: <Profile></Profile> },
   { path: "/skintype", element: <Skintype></Skintype> },
-  { path: "/arms", element: <Arms></Arms> },
-  { path: "/legs", element: <Legs></Legs> },
-  { path: "/back", element: <Back></Back> },
+
   { path: "/routine", element: <Routine></Routine> },
 ]);
 

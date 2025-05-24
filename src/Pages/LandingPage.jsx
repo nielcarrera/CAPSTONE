@@ -3,6 +3,7 @@ import { Share } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { Link, useNavigate } from "react-router-dom";
+import { ANALYSIS_DATA, mockUser } from "../Pages/utils/DummyData";
 import { getRecommendedProducts, products } from "../Pages/utils/Productdata";
 
 // Helper functions
@@ -59,36 +60,18 @@ const LandingPage = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // TODO: Replace with actual API call
-        // const response = await fetch('/api/user/skin-data');
-        // const data = await response.json();
+        const mostRecentKey = Object.keys(ANALYSIS_DATA)[0]; // You can sort to ensure latest
+        const mostRecent = ANALYSIS_DATA[mostRecentKey];
 
-        // Mock data - in real app this would come from your database
-        const mockAnalytics = [
-          { label: "Whiteheads", value: 80 },
-          { label: "Pores", value: 65 },
-          { label: "Redness", value: 50 },
-          { label: "Wrinkles", value: 30 },
-          { label: "Blackheads", value: 35 },
-          { label: "Acne", value: 40 },
-          { label: "Oil", value: 55 },
-          { label: "Freckles", value: 45 },
-        ];
-
-        const skinScore = calculateSkinScore(mockAnalytics);
-        const topProblems = getTopProblems(mockAnalytics);
+        const skinScore = calculateSkinScore(mostRecent.analytics);
+        const topProblems = getTopProblems(mostRecent.analytics);
 
         setUserData({
-          firstName: "Dannjiro Pon-Chan",
+          ...mockUser,
           skinScore,
-          skinType: "Combination",
-          faceProblems: {
-            keyProblems: topProblems,
-          },
-          bodyProblems: {
-            keyProblems: [],
-          },
-          analytics: mockAnalytics,
+          faceProblems: { keyProblems: topProblems },
+          bodyProblems: { keyProblems: [] },
+          analytics: mostRecent.analytics,
         });
 
         setRecommendedProducts(getRecommendedProducts());
@@ -223,18 +206,18 @@ const LandingPage = () => {
                 Recent Skin Issues Analytics (Face)
               </h2>
             </div>
-            <div className="flex space-x-2 animate-fade-in mt-3 md:mt-5 justify-center overflow-x-auto hide-scrollbar">
+            <div className="flex space-x-4 animate-fade-in mt-3 md:mt-5 justify-center overflow-x-auto hide-scrollbar">
               {userData.analytics.map((issue, index) => (
                 <div
                   key={issue.label}
-                  className="flex flex-col items-center space-y-1 md:space-y-2 text-cyan-500"
+                  className="flex flex-col items-center space-y-3 md:space-y-2 text-cyan-500"
                   style={{
                     animationDelay: `${index * 100}ms`,
                     width: "50px md:w-60px",
                     flexShrink: 0,
                   }}
                 >
-                  <div className="flex items-center space-x-1 md:space-x-2">
+                  <div className="flex items-center space-x-3 md:space-x-2">
                     <div
                       className="text-xs md:text-sm font-medium text-center"
                       style={{
@@ -245,7 +228,7 @@ const LandingPage = () => {
                     >
                       {issue.label}
                     </div>
-                    <div className="relative w-5 md:w-7 h-[100px] md:min-h-50 bg-gray-700 rounded-md overflow-hidden flex">
+                    <div className="relative w-5 md:w-8 h-[100px] md:min-h-70 bg-gray-700 rounded-md overflow-hidden flex">
                       <div
                         className="absolute bottom-0 w-full rounded-md"
                         style={{

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Share, HelpCircle, X, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import WalkthroughTour from "../components/Walkthroughtour";
 import {
   Radar,
   RadarChart,
@@ -79,6 +80,12 @@ const Dashboard = () => {
       content:
         "Detailed breakdown of each skin issue with severity percentages.",
     },
+    {
+      id: "impurity-details",
+      title: "Impurity Details",
+      content:
+        "Detailed information about each skin issue detected in your analysis.",
+    },
   ];
 
   // Simple highlight check
@@ -140,54 +147,14 @@ const Dashboard = () => {
         <HelpCircle size={24} />
       </button>
 
-      {/* Tour Tooltip */}
-      <AnimatePresence>
-        {showTour && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 border border-cyan-800 bg-white rounded-lg shadow-xl w-11/12 max-w-md p-4"
-            style={{ marginLeft: "120px" }}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-lg">
-                {tourSteps[tourStep]?.title}
-              </h3>
-              <button
-                onClick={endTour}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-gray-600 mb-4">{tourSteps[tourStep]?.content}</p>
-            <div className="flex justify-between items-center">
-              <div>
-                {tourStep > 0 && (
-                  <button
-                    onClick={prevStep}
-                    className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-                  >
-                    Back
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center">
-                <span className="text-xs text-gray-500 mr-3">
-                  {tourStep + 1} of {tourSteps.length}
-                </span>
-                <button
-                  onClick={nextStep}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  {tourStep === tourSteps.length - 1 ? "Finish" : "Next"}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <WalkthroughTour
+        showTour={showTour}
+        tourSteps={tourSteps}
+        tourStep={tourStep}
+        nextStep={nextStep}
+        prevStep={prevStep}
+        endTour={endTour}
+      />
 
       {/* Main Content Area */}
       <div className="mt-20 max-w-6xl mx-auto space-y-8 px-4">
@@ -429,6 +396,74 @@ const Dashboard = () => {
             </div>
           </section>
         </div>
+
+        {/* New Impurity Details Section */}
+        <section
+          id="impurity-details"
+          className={`bg-white p-6 rounded-xl shadow-sm transition-all duration-300 ${
+            isHighlighted("impurity-details")
+              ? "ring-4 ring-blue-500 z-10"
+              : showTour
+              ? "opacity-40"
+              : ""
+          }`}
+        >
+          <h2 className="text-xl font-bold mb-6">Detailed Skin Analysis</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {sortedImpurities.map((impurity, index) => (
+              <motion.div
+                key={`${impurity.label}-${index}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                className="flex flex-col md:flex-row gap-4 p-4 border border-gray-200 rounded-lg"
+              >
+                <div className="w-full md:w-1/3 h-40 rounded-md overflow-hidden flex-shrink-0">
+                  <img
+                    src={impurity.image}
+                    alt={impurity.label}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-grow">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-semibold text-lg">{impurity.label}</h3>
+                    <span
+                      className="text-lg font-medium"
+                      style={{ color: getColorByValue(impurity.value) }}
+                    >
+                      {impurity.value}%
+                    </span>
+                  </div>
+                  <div className="h-5 w-full mt-3 bg-gray-200 rounded-sm overflow-hidden">
+                    <div
+                      className="h-full rounded-md"
+                      style={{
+                        width: `${impurity.value}%`,
+                        backgroundColor: getColorByValue(impurity.value),
+                      }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    {impurity.description}
+                  </p>
+                  {impurity.causes && (
+                    <div className="mt-2">
+                      <h4 className="text-sm font-medium text-gray-800">
+                        Common Causes:
+                      </h4>
+                      <ul className="list-disc list-inside text-sm text-gray-600">
+                        {impurity.causes.map((cause, i) => (
+                          <li key={i}>{cause}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
 
         {/* View Recommendations Button */}
         <div className="flex justify-center pb-8">

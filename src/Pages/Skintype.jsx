@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import combi from "../assets/combi.webp";
-import RoutineModal from "../components/Routinemodal";
 
 // Dummy data for database integration - this will be replaced with actual API call
 const skinTypeData = {
@@ -36,10 +35,10 @@ const ST = () => {
   const [showDialog, setShowDialog] = useState(false);
 
   return (
-    <div className="min-h-screen mt-20 ml-50 bg-gray-200">
+    <div className="min-h-screen mt-20 ml-50 bg-gray-100">
       <Navbar />
       <Sidebar />
-      <main className="max-w-4xl mx-auto px-4 py-8 md:py-12">
+      <main className="max-w-5xl mx-auto px-4 py-8 md:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -166,16 +165,13 @@ const ST = () => {
                 </div>
 
                 {/* Tips Section */}
-                <RoutineModal
-                  showDialog={showDialog}
-                  setShowDialog={setShowDialog}
-                />
+
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-10 mt-8">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowDialog(true)}
+                    onClick={() => navigate("/routine")}
                     className="flex-1 px-3 py-5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
                   >
                     Build Your Routine

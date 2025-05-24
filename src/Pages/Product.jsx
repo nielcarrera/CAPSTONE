@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { CircleDot, ChevronDown } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import ProductDetailModal from "../components/ProductDetailModal";
 import {
   products,
   skinImpurities,
@@ -130,14 +131,14 @@ const ProductFilters = ({ filters, onFilterChange }) => {
 
   return (
     <div className="flex flex-col gap-4 mb-8">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+      {/* Responsive: Sorting and Filters in two columns on md+ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <h2 className="text-2xl font-bold">Skincare Products</h2>
-
         {/* Sort Dropdown */}
-        <div className="relative w-full sm:w-auto">
+        <div className="relative w-full md:w-auto">
           <button
             onClick={() => setIsSortOpen(!isSortOpen)}
-            className="px-4 py-2 border rounded-md flex items-center justify-between w-full sm:w-auto"
+            className="px-4 py-2 border rounded-md flex items-center justify-between w-full md:w-auto"
           >
             <span>
               Sort by:{" "}
@@ -152,7 +153,7 @@ const ProductFilters = ({ filters, onFilterChange }) => {
           </button>
 
           {isSortOpen && (
-            <div className="absolute right-0 mt-2 w-full sm:w-48 bg-white rounded-md shadow-lg z-10 border">
+            <div className="absolute right-0 mt-2 w-full md:w-48 bg-white rounded-md shadow-lg z-10 border">
               <div className="py-1">
                 {sortOptions.map((option) => (
                   <button
@@ -582,7 +583,7 @@ const Products = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {filteredProducts.map((product) => (
               <ProductCard
                 key={product.id}
@@ -593,6 +594,12 @@ const Products = () => {
           </div>
         )}
       </div>
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        product={selectedProduct}
+        isOpen={isDetailOpen}
+        onClose={handleCloseDetail}
+      />
     </div>
   );
 };
