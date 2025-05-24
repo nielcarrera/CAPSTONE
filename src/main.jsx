@@ -18,6 +18,7 @@ import Routine from "./Pages/Routine";
 import LandingPage from "./Pages/LandingPage";
 import ProductReccomendations from "./Pages/Product_Reccomendation";
 import Product from "./Pages/Product";
+import BodyImpurityDashboard from "./Pages/BodyImpurityDashboard";
 
 const router = createBrowserRouter([
   { path: "/", element: <Home></Home> },
@@ -29,13 +30,16 @@ const router = createBrowserRouter([
   { path: "/download", element: <Download></Download> },
   { path: "/db", element: <Dashboard></Dashboard> },
   { path: "/product", element: <Product></Product> },
+  { path: "/body", element: <BodyImpurityDashboard></BodyImpurityDashboard> },
   {
     path: "/prodrecco",
     element: <ProductReccomendations></ProductReccomendations>,
   },
   { path: "/profile", element: <Profile></Profile> },
   { path: "/skintype", element: <Skintype></Skintype> },
-
+  { path: "/arms", element: <Arms></Arms> },
+  { path: "/legs", element: <Legs></Legs> },
+  { path: "/back", element: <Back></Back> },
   { path: "/routine", element: <Routine></Routine> },
 ]);
 

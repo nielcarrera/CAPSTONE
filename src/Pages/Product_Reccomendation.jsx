@@ -284,9 +284,9 @@ const ProductRecommendations = () => {
                           setSelectedImpurity(impurity);
                           setShowDialog(true);
                         }}
-                        className="px-6 py-2 bg-cyan-900 text-white rounded-lg hover:bg-cyan-800 transition-colors"
+                        className="px-6 py-3 bg-cyan-900 text-white rounded-lg hover:bg-cyan-800 transition-colors"
                       >
-                        Generate Recommendations
+                        Generate Product Recommendations
                       </button>
                     </div>
                   </motion.div>

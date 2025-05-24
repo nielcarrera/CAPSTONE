@@ -13,23 +13,34 @@ import {
   PillBottle,
   Package,
   X,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 const Sidebar = ({ className }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [openSubMenu, setOpenSubMenu] = useState(false);
   const location = useLocation();
 
   const menuItems = [
     { icon: BarChart2, label: "Dashboard", path: "/lp" },
-    { icon: BarChart2, label: "Comprehensive Analysis", path: "/db" },
+    {
+      icon: BarChart2,
+      label: "Comprehensive Analysis",
+      path: "/db",
+      subItems: [
+        { label: "Face", path: "/db" },
+        { label: "Body", path: "/body" },
+      ],
+    },
     { icon: User, label: "My Skin Type", path: "/skintype" },
     { icon: Recycle, label: "My Routines", path: "/routine" },
     { icon: PillBottle, label: "My Products", path: "/product" },
     { icon: Package, label: "Product Recommendations", path: "/prodrecco" },
     { section: "Preferences" },
-    { icon: Settings, label: "Settings", path: "/settings" },
+
     { icon: User, label: "My Profile", path: "/profile" },
     { icon: HelpCircle, label: "FAQ'S", path: "/faqs" },
   ];
@@ -51,6 +62,25 @@ const Sidebar = ({ className }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Auto-close mobile sidebar when route changes
+  useEffect(() => {
+    if (isMobile) {
+      setIsMobileOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
+  // Auto-open submenu if current route is in subItems
+  useEffect(() => {
+    const currentItem = menuItems.find(
+      (item) =>
+        item.subItems &&
+        item.subItems.some((subItem) => location.pathname === subItem.path)
+    );
+    if (currentItem) {
+      setOpenSubMenu(true);
+    }
+  }, [location.pathname]);
+
   const toggleSidebar = () => {
     if (isMobile) {
       setIsMobileOpen(!isMobileOpen);
@@ -59,10 +89,8 @@ const Sidebar = ({ className }) => {
     }
   };
 
-  const closeMobileSidebar = () => {
-    if (isMobile) {
-      setIsMobileOpen(false);
-    }
+  const toggleSubMenu = () => {
+    setOpenSubMenu(!openSubMenu);
   };
 
   return (
@@ -83,7 +111,7 @@ const Sidebar = ({ className }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
-            onClick={closeMobileSidebar}
+            onClick={() => setIsMobileOpen(false)}
           />
         )}
       </AnimatePresence>
@@ -92,7 +120,7 @@ const Sidebar = ({ className }) => {
       <motion.div
         initial={false}
         animate={{
-          width: isMobile ? 280 : isCollapsed ? 80 : 280,
+          width: isMobile ? 240 : isCollapsed ? 80 : 280,
           x: isMobileOpen || !isMobile ? 0 : -280,
         }}
         className={`fixed left-0 top-0 h-screen bg-[#1A1F2C] text-white flex flex-col z-30 ${
@@ -101,22 +129,28 @@ const Sidebar = ({ className }) => {
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
         <div className="mt-5 flex items-center p-6 justify-between">
-          {!isCollapsed && (
+          {(!isCollapsed || isMobile) && (
             <h1 className="font-bold text-2xl">Insecurity Free</h1>
           )}
-          <button
-            onClick={toggleSidebar}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            {isCollapsed ? <Menu size={24} /> : <X size={24} />}
-          </button>
+          {!isMobile && (
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            >
+              {isCollapsed ? <Menu size={24} /> : <X size={24} />}
+            </button>
+          )}
         </div>
 
-        <nav className="flex-1 mt-10 px-4 flex flex-col overflow-y-auto">
+        <nav className="flex-1 mt-10 px-4 flex flex-col overflow-y-auto scrollbar-none">
+          <style>{`
+            .scrollbar-none::-webkit-scrollbar { display: none; }
+            .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+          `}</style>
           <div className="flex-1">
             {menuItems.map((item, index) =>
               item.section ? (
-                !isCollapsed && (
+                (!isCollapsed || isMobile) && (
                   <div
                     key={index}
                     className="px-4 py-2 text-sm text-gray-400 mt-4"
@@ -125,24 +159,82 @@ const Sidebar = ({ className }) => {
                   </div>
                 )
               ) : (
-                <motion.div
-                  key={index}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Link
-                    to={item.path}
-                    className={`flex items-center gap-4 px-4 py-3 rounded-lg mb-1 transition-colors hover:bg-white/10 ${
-                      location.pathname === item.path
-                        ? "bg-white/20 text-white"
-                        : ""
-                    }`}
-                    onClick={closeMobileSidebar}
+                <div key={index}>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <item.icon size={24} />
-                    {!isCollapsed && <span>{item.label}</span>}
-                  </Link>
-                </motion.div>
+                    <Link
+                      to={item.path}
+                      className={`flex items-center justify-between gap-4 px-4 py-3 rounded-lg mb-1 transition-colors hover:bg-white/10 ${
+                        location.pathname === item.path ||
+                        (item.subItems &&
+                          item.subItems.some(
+                            (subItem) => location.pathname === subItem.path
+                          ))
+                          ? "bg-white/20 text-white"
+                          : ""
+                      }`}
+                      onClick={(e) => {
+                        if (item.subItems) {
+                          e.preventDefault();
+                          toggleSubMenu();
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-4">
+                        <item.icon size={24} />
+                        {(!isCollapsed || isMobile) && (
+                          <span>{item.label}</span>
+                        )}
+                      </div>
+                      {item.subItems &&
+                        (!isCollapsed || isMobile) &&
+                        (openSubMenu ? (
+                          <ChevronDown size={18} />
+                        ) : (
+                          <ChevronRight size={18} />
+                        ))}
+                    </Link>
+                  </motion.div>
+
+                  {/* Submenu items */}
+                  {item.subItems &&
+                    (openSubMenu || isCollapsed) &&
+                    (!isCollapsed || isMobile) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{
+                          height: openSubMenu ? "auto" : 0,
+                          opacity: openSubMenu ? 1 : 0,
+                        }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        {item.subItems.map((subItem, subIndex) => (
+                          <motion.div
+                            key={subIndex}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Link
+                              to={subItem.path}
+                              className={`flex items-center gap-4 px-4 py-3 rounded-lg mb-1 transition-colors hover:bg-white/10 ${
+                                location.pathname === subItem.path
+                                  ? "bg-white/20 text-white"
+                                  : ""
+                              }`}
+                              style={{ paddingLeft: "3.5rem" }}
+                            >
+                              {(!isCollapsed || isMobile) && (
+                                <span>{subItem.label}</span>
+                              )}
+                            </Link>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    )}
+                </div>
               )
             )}
           </div>
@@ -152,10 +244,9 @@ const Sidebar = ({ className }) => {
             <Link
               to="/login"
               className="flex items-center gap-4 px-4 py-3 rounded-lg mb-4 hover:bg-white/10 transition-colors"
-              onClick={closeMobileSidebar}
             >
               <LogOut size={24} />
-              {!isCollapsed && <span>Logout</span>}
+              {(!isCollapsed || isMobile) && <span>Logout</span>}
             </Link>
           </motion.div>
         </nav>
