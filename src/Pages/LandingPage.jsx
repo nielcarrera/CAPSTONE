@@ -3,65 +3,26 @@ import { Share } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { Link, useNavigate } from "react-router-dom";
-import { ANALYSIS_DATA, mockUser } from "../Pages/utils/DummyData";
+import {
+  ANALYSIS_DATA,
+  mockUser,
+  getRecentBodyImpurities,
+} from "../Pages/utils/DummyData";
 import { getRecommendedProducts, products } from "../Pages/utils/Productdata";
-
-// Helper functions
-const getSeverityColor = (severity) => {
-  const colors = {
-    mild: "bg-green-400",
-    moderate: "bg-yellow-400",
-    severe: "bg-red-400",
-  };
-  return colors[severity] || "bg-gray-300";
-};
-
-const getColorByValue = (value) => {
-  if (value >= 75) return "#f87171";
-  if (value >= 50) return "#facc15";
-  return "#4ade80";
-};
-
-// Calculate skin score based on analytics data
-const calculateSkinScore = (analytics) => {
-  if (!analytics || analytics.length === 0) return 0;
-
-  // Calculate average of all values, then invert (higher problems = lower score)
-  const total = analytics.reduce((sum, item) => sum + item.value, 0);
-  const average = total / analytics.length;
-
-  // Convert to score out of 100 (higher is better)
-  return Math.round(100 - average);
-};
-
-// Get top 3 problems from analytics
-const getTopProblems = (analytics) => {
-  if (!analytics) return [];
-
-  // Sort by value descending and take top 3
-  return [...analytics]
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 3)
-    .map((item) => ({
-      label: item.label,
-      value: item.value,
-      severity:
-        item.value >= 75 ? "severe" : item.value >= 50 ? "moderate" : "mild",
-    }));
-};
 
 const LandingPage = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [recentBodyImpurities, setRecentBodyImpurities] = useState([]);
   const navigate = useNavigate();
 
-  // Fetch user data from database
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const mostRecentKey = Object.keys(ANALYSIS_DATA)[0]; // You can sort to ensure latest
+        const mostRecentKey = Object.keys(ANALYSIS_DATA)[0];
         const mostRecent = ANALYSIS_DATA[mostRecentKey];
+        const bodyImpurities = getRecentBodyImpurities();
 
         const skinScore = calculateSkinScore(mostRecent.analytics);
         const topProblems = getTopProblems(mostRecent.analytics);
@@ -70,10 +31,10 @@ const LandingPage = () => {
           ...mockUser,
           skinScore,
           faceProblems: { keyProblems: topProblems },
-          bodyProblems: { keyProblems: [] },
           analytics: mostRecent.analytics,
         });
 
+        setRecentBodyImpurities(bodyImpurities);
         setRecommendedProducts(getRecommendedProducts());
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -180,21 +141,59 @@ const LandingPage = () => {
             </div>
 
             <div
-              className="rounded-xl shadow-sm flex items-center justify-center border border-cyan-500 animate-scale-in"
+              className="rounded-xl shadow-sm border border-cyan-500 animate-scale-in"
               style={{ boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)" }}
             >
-              <div className="p-3 md:p-4 w-full">
+              <div className="p-3 md:p-4">
                 <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-black">
-                  Recent Key Problems (Body)
+                  Recent Body Impurities
                 </h2>
-                <div className="flex flex-col items-center justify-center py-3 md:py-4 animate-fade-in">
-                  <div className="text-base md:text-lg text-gray-400 font-medium">
-                    No Impurity Detected
+                {recentBodyImpurities.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 md:py-10 animate-fade-in">
+                    <div className="text-base md:text-lg text-gray-400 font-medium">
+                      No Impurity Detected
+                    </div>
+                    <div className="mt-1 md:mt-2 text-sm text-gray-700">
+                      Your body skin appears to be clear
+                    </div>
                   </div>
-                  <div className="mt-1 md:mt-2 text-sm text-gray-700">
-                    Your body skin appears to be clear
+                ) : (
+                  <div
+                    className={`grid ${
+                      recentBodyImpurities.length === 1
+                        ? "grid-cols-1"
+                        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    } gap-4`}
+                  >
+                    {recentBodyImpurities.map((impurity, index) => (
+                      <div
+                        key={impurity.id}
+                        className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow animate-fade-in"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <div className="p-4">
+                          <div className="flex items-start">
+                            <div className="ml-3 flex-1">
+                              <h3 className="text-md font-bold text-gray-900">
+                                {impurity.label}
+                              </h3>
+                              <p className="text-xs text-cyan-600 font-medium mt-1">
+                                {impurity.bodyPart}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-xs text-gray-500 line-clamp-2">
+                            {impurity.description}
+                          </p>
+                          <div className="mt-3 text-xs text-gray-400">
+                            Detected:{" "}
+                            {new Date(impurity.dateFound).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -273,15 +272,6 @@ const LandingPage = () => {
                       : "Needs Attention"}
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-center mb-5 md:mb-10">
-                <button
-                  onClick={handleShare}
-                  className="flex items-center justify-center w-8/12 md:w-6/12 py-2 px-3 md:px-4 rounded-xl bg-blue-500 text-white font-medium hover:bg-opacity-90 transition-colors"
-                >
-                  <Share size={14} className="mr-1 md:mr-2" />
-                  Share Results
-                </button>
               </div>
             </div>
 
@@ -408,6 +398,42 @@ const LandingPage = () => {
       </div>
     </div>
   );
+};
+
+// Helper functions
+const getSeverityColor = (severity) => {
+  const colors = {
+    mild: "bg-green-400",
+    moderate: "bg-yellow-400",
+    severe: "bg-red-400",
+  };
+  return colors[severity] || "bg-gray-300";
+};
+
+const getColorByValue = (value) => {
+  if (value >= 75) return "#f87171";
+  if (value >= 50) return "#facc15";
+  return "#4ade80";
+};
+
+const calculateSkinScore = (analytics) => {
+  if (!analytics || analytics.length === 0) return 0;
+  const total = analytics.reduce((sum, item) => sum + item.value, 0);
+  const average = total / analytics.length;
+  return Math.round(100 - average);
+};
+
+const getTopProblems = (analytics) => {
+  if (!analytics) return [];
+  return [...analytics]
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3)
+    .map((item) => ({
+      label: item.label,
+      value: item.value,
+      severity:
+        item.value >= 75 ? "severe" : item.value >= 50 ? "moderate" : "mild",
+    }));
 };
 
 export default LandingPage;

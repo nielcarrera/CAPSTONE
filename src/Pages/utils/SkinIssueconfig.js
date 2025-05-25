@@ -52,3 +52,54 @@ export const skinIssues = {
       "Darkened areas under the eyes due to thinning skin or blood vessel visibility.",
   },
 };
+
+// src/config/skinIssueDetails.js
+export const skinIssueDetails = {
+  Whiteheads: {
+    cause: "Clogged pores from excess oil, dead skin cells, and makeup.",
+    prevention:
+      "Use non-comedogenic products, cleanse gently, exfoliate regularly.",
+  },
+  Pores: {
+    cause: "Genetics, excess sebum, sun damage, and aging.",
+    prevention:
+      "Daily SPF use, oil control with niacinamide, exfoliation with salicylic acid.",
+  },
+  Redness: {
+    cause: "Inflammation, rosacea, sunburn, or skin irritation.",
+    prevention:
+      "Avoid harsh products and hot water, use calming skincare, wear sunscreen.",
+  },
+  Freckles: {
+    cause: "UV exposure triggering melanin overproduction.",
+    prevention:
+      "Daily broad-spectrum SPF, limit sun exposure, wear hats/sunglasses.",
+  },
+  Acne: {
+    cause:
+      "Blocked hair follicles due to oil, bacteria, and hormonal imbalance.",
+    prevention:
+      "Consistent cleansing, avoid heavy cosmetics, manage stress and diet.",
+  },
+  Blackheads: {
+    cause: "Open clogged pores filled with oxidized oil and dead skin.",
+    prevention:
+      "Exfoliate with BHA (salicylic acid), double cleanse, avoid pore-clogging products.",
+  },
+  Wrinkles: {
+    cause: "UV damage, aging, loss of collagen and elastin.",
+    prevention:
+      "Daily sunscreen, antioxidant-rich skincare, stay hydrated, avoid smoking.",
+  },
+  Oil: {
+    cause:
+      "Overactive sebaceous glands often due to genetics or hormonal changes.",
+    prevention:
+      "Use oil-free products, blotting papers, and clay masks to control shine.",
+  },
+  "Dark Circles": {
+    cause: "Thinning skin under eyes, lack of sleep, or genetics.",
+    prevention:
+      "Get adequate sleep, use caffeine-based eye creams, protect from sun.",
+  },
+};

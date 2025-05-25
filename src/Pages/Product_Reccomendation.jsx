@@ -1,27 +1,26 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Edit } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import RecommendationModal from "../components/RecommendationModal";
+import RecommendedProductsDialog from "../components/ReccomendedProductsDialog";
 import { ANALYSIS_DATA } from "../Pages/utils/DummyData";
 import { skinIssues } from "../Pages/utils/SkinIssueconfig";
+import { products } from "../Pages/utils/Productdata";
 import {
   enrichImpurities,
   getColorByValue,
 } from "../Pages/utils/SkinAnalytics";
 
-// Mock user data (would come from your auth/context in real app)
 const MOCK_USER_DATA = {
-  firstName: "Dannjiro Pon-Chan",
   skinType: "Combination",
 };
 
 const skinTypes = ["Normal", "Dry", "Oily", "Combination", "Sensitive"];
 
 const ProductRecommendations = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [selectedDate, setSelectedDate] = useState(
     searchParams.get("date") || Object.keys(ANALYSIS_DATA)[0]
@@ -31,15 +30,16 @@ const ProductRecommendations = () => {
   const [currentData, setCurrentData] = useState(null);
   const [sortedImpurities, setSortedImpurities] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
-  const [selectedImpurity, setSelectedImpurity] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditingSkinType, setIsEditingSkinType] = useState(false);
   const [userData, setUserData] = useState(MOCK_USER_DATA);
+  const [showProductsDialog, setShowProductsDialog] = useState(false);
+  const [recommendations, setRecommendations] = useState(null);
+  const [selectedImpurity, setSelectedImpurity] = useState(null);
 
   const fetchAnalysisData = async (date) => {
     setIsLoading(true);
     try {
-      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 500));
       const data =
         ANALYSIS_DATA[date] || ANALYSIS_DATA[Object.keys(ANALYSIS_DATA)[0]];
@@ -59,37 +59,46 @@ const ProductRecommendations = () => {
   const handleUpdateSkinType = (newType) => {
     setUserData((prev) => ({ ...prev, skinType: newType }));
     setIsEditingSkinType(false);
-    // In a real app, you would save to your backend here
-    // await updateUserProfile({ skinType: newType });
   };
 
   const handleGenerateRecommendations = async (impurity) => {
     setIsGenerating(true);
     try {
-      // This is where you would call your model API
-      // const response = await fetch('/api/generate-recommendations', {
-      //   method: 'POST',
-      //   body: JSON.stringify({
-      //     impurity: impurity.label,
-      //     severity: impurity.value,
-      //     skinType: userData.skinType,
-      //     date: selectedDate
-      //   })
-      // });
-      // const recommendations = await response.json();
-
-      // Simulate API call delay (2-5 seconds)
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
-      // Navigate to results page with the generated data
-      navigate("/recommendations/results", {
-        state: {
-          recommendations: generateMockRecommendations(impurity),
-          impurity,
-          skinType: userData.skinType,
-          date: selectedDate,
-        },
+      // Filter products based on user preferences
+      const filteredProducts = products.filter((product) => {
+        const skinTypeMatch =
+          product.skinType.toLowerCase() === userData.skinType.toLowerCase();
+        const impurityMatch =
+          product.impurity.toLowerCase() === impurity.label.toLowerCase();
+        const severityMatch = impurity.severity
+          ? product.severity.toLowerCase() === impurity.severity.toLowerCase()
+          : true;
+
+        return skinTypeMatch && impurityMatch && severityMatch;
       });
+
+      // If no exact matches, find partial matches
+      const recommendedProducts =
+        filteredProducts.length > 0
+          ? filteredProducts
+          : products
+              .filter((product) => {
+                return (
+                  product.skinType.toLowerCase() ===
+                    userData.skinType.toLowerCase() ||
+                  product.impurity.toLowerCase() ===
+                    impurity.label.toLowerCase()
+                );
+              })
+              .slice(0, 3);
+
+      setRecommendations({
+        products: recommendedProducts,
+        explanation: `Recommended products for ${userData.skinType} skin with ${impurity.label} concern`,
+      });
+      setShowProductsDialog(true);
     } catch (error) {
       console.error("Generation failed:", error);
       alert("Failed to generate recommendations. Please try again.");
@@ -99,20 +108,17 @@ const ProductRecommendations = () => {
     }
   };
 
-  // Helper function for mock data (remove in production)
-  const generateMockRecommendations = (impurity) => {
-    const products = [
-      { name: "Cleansing Gel", brand: "CeraVe", type: "cleanser" },
-      { name: "Hydrating Toner", brand: "Paula's Choice", type: "toner" },
-      { name: "Treatment Serum", brand: "The Ordinary", type: "serum" },
-    ];
-    return {
-      routine: products,
-      explanation: `These products help address ${
-        impurity.label
-      } for ${userData.skinType.toLowerCase()} skin by ${impurity.description.toLowerCase()}`,
-    };
-  };
+  // Automatically close the RecommendedProductsDialog when no products left
+  useEffect(() => {
+    if (
+      showProductsDialog &&
+      recommendations &&
+      recommendations.products &&
+      recommendations.products.length === 0
+    ) {
+      setShowProductsDialog(false);
+    }
+  }, [recommendations, showProductsDialog]);
 
   useEffect(() => {
     fetchAnalysisData(selectedDate);
@@ -124,7 +130,7 @@ const ProductRecommendations = () => {
       <Navbar />
 
       <div className="mt-20 max-w-6xl mx-auto space-y-8 px-4">
-        {/* User Profile Header with Skin Type */}
+        {/* User Profile Header */}
         <div className="bg-white p-6 rounded-xl shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -135,7 +141,6 @@ const ProductRecommendations = () => {
                 Personalized suggestions based on your skin analysis
               </p>
             </div>
-
             <div className="flex items-center gap-3">
               {!isEditingSkinType ? (
                 <div className="flex items-center bg-gray-100 rounded-full px-4 py-2">
@@ -222,13 +227,12 @@ const ProductRecommendations = () => {
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* Content */}
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : (
-          /* Recommendations List */
           <div className="bg-white p-6 rounded-xl shadow-sm">
             {sortedImpurities.length > 0 ? (
               <div className="space-y-6">
@@ -241,7 +245,7 @@ const ProductRecommendations = () => {
                     className="flex flex-col p-4 border border-gray-100 rounded-lg"
                   >
                     <div className="flex flex-col md:flex-row items-start gap-4">
-                      <div className="w-full md:w-38 h-40 rounded-md mr-5  overflow-hidden flex-shrink-0">
+                      <div className="w-full md:w-38 h-40 rounded-md mr-5 overflow-hidden flex-shrink-0">
                         <img
                           src={impurity.image}
                           alt={impurity.label}
@@ -309,6 +313,34 @@ const ProductRecommendations = () => {
         isGenerating={isGenerating}
         skinType={userData.skinType}
       />
+
+      <AnimatePresence>
+        {showProductsDialog && (
+          <RecommendedProductsDialog
+            showDialog={showProductsDialog}
+            onClose={() => setShowProductsDialog(false)}
+            recommendedProducts={recommendations?.products || []}
+            skinType={userData.skinType}
+            impurity={selectedImpurity}
+            onClaimProduct={(claimedProduct) => {
+              // Remove claimed product from recommendations
+              setRecommendations((prev) => ({
+                ...prev,
+                products: prev.products.filter(
+                  (p) => p.id !== claimedProduct.id
+                ),
+              }));
+            }}
+            onDiscardProduct={(discardedId) => {
+              // Remove discarded product from recommendations
+              setRecommendations((prev) => ({
+                ...prev,
+                products: prev.products.filter((p) => p.id !== discardedId),
+              }));
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

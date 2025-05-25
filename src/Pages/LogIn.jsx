@@ -17,7 +17,7 @@ import supabase from "../supabase";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [session, setSession] = useState(null)
+  const [session, setSession] = useState(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -96,7 +96,7 @@ const Login = () => {
       if (!user.has_seen_intro) {
         navigate("/intro");
       } else {
-        navigate("/");
+        navigate("/lp");
       }
 
       // Show success message
@@ -137,20 +137,20 @@ const Login = () => {
 
   const signUp = async () => {
     await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    })
+      provider: "google",
+    });
   };
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
+      setSession(session);
+    });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
+      setSession(session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
   if (!session) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white p-4 ">
@@ -235,7 +235,7 @@ const Login = () => {
               </button>
             </form>
           </div>
-  
+
           {/* Slideshow for Features */}
           <div className="md:w-1/2 relative" style={{ minHeight: "400px" }}>
             <Swiper
@@ -268,12 +268,18 @@ const Login = () => {
         </div>
       </div>
     );
-  }
-  else {
-    return (<div>
-      Logged in! {session.user.email}
-      <button onClick={signOut} className="bg-red-500 text-white px-4 py-2 rounded">Sign Out</button>
-      </div>)
+  } else {
+    return (
+      <div>
+        Logged in! {session.user.email}
+        <button
+          onClick={signOut}
+          className="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          Sign Out
+        </button>
+      </div>
+    );
   }
 };
 

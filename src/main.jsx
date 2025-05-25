@@ -19,6 +19,7 @@ import LandingPage from "./Pages/LandingPage";
 import ProductReccomendations from "./Pages/Product_Reccomendation";
 import Product from "./Pages/Product";
 import BodyImpurityDashboard from "./Pages/BodyImpurityDashboard";
+import ReccomendedProductsDialog from "./components/ReccomendedProductsDialog";
 
 const router = createBrowserRouter([
   { path: "/", element: <Home></Home> },
@@ -35,6 +36,11 @@ const router = createBrowserRouter([
     path: "/prodrecco",
     element: <ProductReccomendations></ProductReccomendations>,
   },
+  {
+    path: "/product-recommendations",
+    element: <ReccomendedProductsDialog></ReccomendedProductsDialog>,
+  },
+
   { path: "/profile", element: <Profile></Profile> },
   { path: "/skintype", element: <Skintype></Skintype> },
   { path: "/arms", element: <Arms></Arms> },

@@ -22,6 +22,7 @@ import {
   computeSkinScore,
   enrichImpurities,
 } from "../Pages/utils/SkinAnalytics";
+import { skinIssueDetails } from "../Pages/utils/SkinIssueconfig";
 
 const Dashboard = () => {
   // Main state
@@ -31,6 +32,7 @@ const Dashboard = () => {
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedImpurity, setSelectedImpurity] = useState(null);
+  const [expandedDetails, setExpandedDetails] = useState(null);
 
   // Tour state
   const [tourStep, setTourStep] = useState(0);
@@ -124,6 +126,14 @@ const Dashboard = () => {
   }, []);
 
   const handleShareScore = () => alert(`Sharing skin score: ${skinScore}`);
+
+  const toggleDetails = (label) => {
+    if (expandedDetails === label) {
+      setExpandedDetails(null);
+    } else {
+      setExpandedDetails(label);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 ml-0 md:ml-[240px] relative">
@@ -447,17 +457,41 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-600 mt-3">
                     {impurity.description}
                   </p>
-                  {impurity.causes && (
-                    <div className="mt-2">
-                      <h4 className="text-sm font-medium text-gray-800">
-                        Common Causes:
-                      </h4>
-                      <ul className="list-disc list-inside text-sm text-gray-600">
-                        {impurity.causes.map((cause, i) => (
-                          <li key={i}>{cause}</li>
-                        ))}
-                      </ul>
-                    </div>
+
+                  <button
+                    onClick={() => toggleDetails(impurity.label)}
+                    className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    {expandedDetails === impurity.label
+                      ? "Hide Details"
+                      : "View More Details"}
+                  </button>
+
+                  {expandedDetails === impurity.label && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-3 bg-gray-50 p-3 rounded-md"
+                    >
+                      <div className="mb-2">
+                        <h4 className="font-medium text-gray-800">Cause:</h4>
+                        <p className="text-sm text-gray-600">
+                          {skinIssueDetails[impurity.label]?.cause ||
+                            "No cause information available"}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-800">
+                          Prevention:
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {skinIssueDetails[impurity.label]?.prevention ||
+                            "No prevention information available"}
+                        </p>
+                      </div>
+                    </motion.div>
                   )}
                 </div>
               </motion.div>

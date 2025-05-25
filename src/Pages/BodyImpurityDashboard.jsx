@@ -4,15 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
-import { BODY_ANALYSIS_DATA, BODY_PARTS } from "../Pages/utils/DummyData";
+import {
+  BODY_ANALYSIS_DATA,
+  BODY_PARTS,
+  getColorByValue,
+} from "../Pages/utils/DummyData";
 import RecommendationModal_Body from "../components/BodyReccomendationModal";
 
 const BodyImpurityDashboard = () => {
-  const [selectedDate, setSelectedDate] = useState(
-    Object.keys(BODY_ANALYSIS_DATA)[0]
-  );
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const [selectedImpurity, setSelectedImpurity] = useState(null);
   const [selectedBodyParts, setSelectedBodyParts] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -20,15 +19,38 @@ const BodyImpurityDashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentImpurity, setCurrentImpurity] = useState(null);
 
-  const currentData = BODY_ANALYSIS_DATA[selectedDate];
-  const impurities = currentData?.impurities || [];
+  // Get all unique dates for filtering (sorted newest first)
+  const allDates = [
+    ...new Set(
+      Object.values(BODY_ANALYSIS_DATA)
+        .flatMap((analysis) =>
+          (analysis.impurities || []).map((imp) => imp.dateFound)
+        )
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => new Date(b) - new Date(a));
 
-  const processedImpurities = [...impurities].filter(
+  const [selectedDate, setSelectedDate] = useState(""); // "" means all dates
+
+  // Get all impurities from all dates and flatten them into one array
+  const allImpurities = Object.values(BODY_ANALYSIS_DATA).flatMap(
+    (analysis) => analysis.impurities || []
+  );
+
+  // Filter by date if selected
+  const dateFilteredImpurities = selectedDate
+    ? allImpurities.filter((imp) => imp.dateFound === selectedDate)
+    : allImpurities;
+
+  // Sort by date (newest first)
+  const sortedImpurities = [...dateFilteredImpurities].sort(
+    (a, b) => new Date(b.dateFound) - new Date(a.dateFound)
+  );
+
+  const processedImpurities = sortedImpurities.filter(
     (imp) =>
       selectedBodyParts.length === 0 || selectedBodyParts.includes(imp.bodyPart)
   );
-
-  const topThreeImpurities = processedImpurities.slice(0, 3);
 
   const toggleBodyPart = (part) => {
     setSelectedBodyParts((prev) =>
@@ -54,9 +76,19 @@ const BodyImpurityDashboard = () => {
     // Simulate API call or processing
     setTimeout(() => {
       setIsGenerating(false);
-      // In a real app, you would navigate to the recommendations page here
-      // or show the results directly
     }, 6000);
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -66,55 +98,30 @@ const BodyImpurityDashboard = () => {
 
       {/* Main Content Area */}
       <div className="mt-20 max-w-6xl mx-auto space-y-8 px-4">
-        {/* Date Selector */}
-        <div className="relative bg-white rounded-lg shadow-sm border border-gray-200">
-          <button
-            onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-            className="flex items-center gap-2 px-4 py-3 w-full justify-between hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <span className="font-medium">{selectedDate}</span>
-            <ChevronDown
-              size={20}
-              className={`transition-transform ${
-                isDateDropdownOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          <AnimatePresence>
-            {isDateDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full mt-1 w-full bg-white rounded-lg shadow-lg z-10 border border-gray-200"
-              >
-                {Object.keys(BODY_ANALYSIS_DATA).map((date) => (
-                  <button
-                    key={date}
-                    onClick={() => {
-                      setSelectedDate(date);
-                      setIsDateDropdownOpen(false);
-                    }}
-                    className={`w-full px-4 py-2 text-left hover:bg-gray-50 ${
-                      date === selectedDate ? "text-blue-600 font-medium" : ""
-                    }`}
-                  >
-                    {date}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
         {/* Detailed Body Analysis Section */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <h2 className="text-xl font-bold">Detailed Body Analysis</h2>
-            <div className="text-sm text-gray-500">
-              {processedImpurities.length}{" "}
-              {processedImpurities.length === 1 ? "item" : "items"} found
+            <div className="flex flex-col md:flex-row md:items-center gap-2">
+              {/* Date Filter */}
+              <div>
+                <select
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                >
+                  <option value="">All Dates</option>
+                  {allDates.map((date) => (
+                    <option key={date} value={date}>
+                      {formatDate(date)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="text-sm text-gray-500">
+                {processedImpurities.length}{" "}
+                {processedImpurities.length === 1 ? "item" : "items"} found
+              </div>
             </div>
           </div>
 
@@ -160,7 +167,7 @@ const BodyImpurityDashboard = () => {
                           onClick={() => toggleBodyPart(part)}
                           className={`px-3 py-2 text-sm rounded-md border transition-colors ${
                             selectedBodyParts.includes(part)
-                              ? "bg-blue-50 border-blue-200 text-blue-700"
+                              ? "bg-blue-50 border-blue-200 text-blue-700 ring-cyan-800"
                               : "border-gray-200 hover:bg-gray-50"
                           }`}
                         >
@@ -176,35 +183,39 @@ const BodyImpurityDashboard = () => {
 
           {/* Impurity Cards */}
           {processedImpurities.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
               {processedImpurities.map((impurity) => (
                 <div
                   key={impurity.id}
-                  className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full"
+                  className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full bg-white p-2 sm:p-3 md:p-4"
                 >
-                  <div className="aspect-video bg-gray-100 overflow-hidden">
+                  <div className="aspect-[4/3] bg-gray-100 overflow-hidden rounded-md">
                     <img
                       src={impurity.image}
                       alt={impurity.label}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="p-5 flex flex-col flex-grow">
-                    <h3 className="font-semibold text-lg text-gray-800">
+                  <div className="flex flex-col flex-grow mt-2">
+                    <h3 className="font-semibold text-xs sm:text-sm md:text-base text-gray-800">
                       {impurity.label}
                     </h3>
-                    <span className="text-sm text-gray-500 mt-1 mb-2 block">
+                    <span className="text-xs sm:text-sm text-gray-500 mt-1 mb-1 block">
                       {impurity.bodyPart}
                     </span>
-                    <p className="text-sm text-gray-600 mb-4 flex-grow">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2 flex-grow line-clamp-2">
                       {impurity.description}
                     </p>
-                    <div className="flex gap-3 mt-auto">
+                    {/* Detection Date */}
+                    <div className="text-[11px] sm:text-xs text-gray-400 mb-2">
+                      Detected: {formatDate(impurity.dateFound)}
+                    </div>
+                    <div className="flex gap-2 mt-auto">
                       <button
                         onClick={() => openDetailsModal(impurity)}
-                        className="flex-1 text-center rounded-md text-sm px-3 py-2 bg-gray-800 text-white hover:bg-gray-700 transition-colors"
+                        className="flex-1 text-center rounded-md text-xs sm:text-sm px-2 py-2 bg-gray-800 text-white hover:bg-gray-700 transition-colors"
                       >
-                        View details
+                        View more details
                       </button>
                     </div>
                   </div>
@@ -271,6 +282,15 @@ const BodyImpurityDashboard = () => {
 
                     <div>
                       <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-gray-800">
+                            Detection Date:
+                          </h4>
+                          <p className="text-gray-600">
+                            {formatDate(currentImpurity.dateFound)}
+                          </p>
+                        </div>
+
                         <div>
                           <h4 className="font-medium text-gray-800">
                             Body Part:
