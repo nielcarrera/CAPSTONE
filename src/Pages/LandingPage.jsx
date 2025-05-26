@@ -1,41 +1,61 @@
 import React, { useState, useEffect } from "react";
-import { Share } from "lucide-react";
+
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ANALYSIS_DATA,
   mockUser,
   getRecentBodyImpurities,
 } from "../Pages/utils/DummyData";
-import { getRecommendedProducts, products } from "../Pages/utils/Productdata";
+import {
+  fetchUserDetails,
+  fetchUserSkinType,
+  fetchRecentProducts,
+} from "../service/landingpageService"; // Use the new service functions
+import { supabase } from "../lib/supabaseClient";
 
 const LandingPage = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [recentProducts, setRecentProducts] = useState([]);
   const [recentBodyImpurities, setRecentBodyImpurities] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          navigate("/login");
+          return;
+        }
+
+        // Fetch user details and skintype using the service functions
+        const userDetails = await fetchUserDetails(user.id);
+        const userSkinType = await fetchUserSkinType(user.id);
+
         const mostRecentKey = Object.keys(ANALYSIS_DATA)[0];
         const mostRecent = ANALYSIS_DATA[mostRecentKey];
         const bodyImpurities = getRecentBodyImpurities();
+        const products = await fetchRecentProducts(6);
 
         const skinScore = calculateSkinScore(mostRecent.analytics);
         const topProblems = getTopProblems(mostRecent.analytics);
 
         setUserData({
           ...mockUser,
+          firstName: userDetails?.first_name || "User",
           skinScore,
           faceProblems: { keyProblems: topProblems },
           analytics: mostRecent.analytics,
+          skinType: userSkinType || null,
         });
 
         setRecentBodyImpurities(bodyImpurities);
-        setRecommendedProducts(getRecommendedProducts());
+        setRecentProducts(products);
       } catch (error) {
         console.error("Error fetching user data:", error);
       } finally {
@@ -44,24 +64,14 @@ const LandingPage = () => {
     };
 
     fetchUserData();
-  }, []);
+  }, [navigate]);
 
   const handleShare = () => {
     alert("Results shared successfully!");
   };
 
-  const handleAddProduct = () => {
-    const newProduct = {
-      id: Date.now(),
-      name: "New Product",
-      brand: "Test Brand",
-      image: "https://via.placeholder.com/150",
-    };
-    setRecommendedProducts((prev) => [...prev, newProduct]);
-  };
-
   const handleSeeMore = () => {
-    navigate("/products");
+    navigate("/product");
   };
 
   if (loading) {
@@ -284,7 +294,7 @@ const LandingPage = () => {
                   <div className="text-2xl md:text-3xl font-semibold text-gray-800">
                     Skintype:{" "}
                     <span className="text-cyan-800 text-3xl md:text-4xl font-bold">
-                      {userData.skinType}
+                      {userData.skinType ? userData.skinType : "N/A"}
                     </span>
                   </div>
                   <div className="mt-1 md:mt-2 text-xs md:text-sm text-gray-500 text-center">
@@ -298,6 +308,8 @@ const LandingPage = () => {
                       ? "Your skin is well-balanced."
                       : userData.skinType === "Sensitive"
                       ? "Your skin reacts easily to products."
+                      : !userData.skinType
+                      ? "Please set your skin type on the My Skintype Page."
                       : "Your skin type has unique characteristics."}
                   </div>
                 </div>
@@ -305,7 +317,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Column 4 */}
+          {/* Column 4 - Recently Saved Products */}
           <div
             className="rounded-xl shadow-sm border border-cyan-500 animate-scale-in flex flex-col justify-between"
             style={{
@@ -319,7 +331,7 @@ const LandingPage = () => {
                 <h2 className="text-lg md:text-xl font-semibold">
                   Recently Saved Products
                 </h2>
-                {recommendedProducts.length > 0 && (
+                {recentProducts.length > 0 && (
                   <button
                     onClick={handleSeeMore}
                     className="text-xs md:text-sm text-blue-500 hover:text-blue-600 font-medium"
@@ -329,24 +341,15 @@ const LandingPage = () => {
                 )}
               </div>
 
-              {recommendedProducts.length === 0 ? (
+              {recentProducts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full">
                   <div className="text-gray-500 mb-4 text-center">
-                    No products saved yet
+                    No products found
                   </div>
-                  <button
-                    onClick={handleAddProduct}
-                    className="flex items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:text-blue-500 transition-colors"
-                  >
-                    <div className="text-center">
-                      <span className="text-2xl">+</span>
-                      <div className="text-xs mt-1">Add Product</div>
-                    </div>
-                  </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 h-full">
-                  {recommendedProducts.slice(0, 6).map((product) => (
+                  {recentProducts.map((product) => (
                     <div
                       key={product.id}
                       className="h-36 md:h-40 rounded-lg overflow-hidden border border-gray-200 transition-transform hover:-translate-y-1 hover:shadow-lg flex flex-col"
@@ -366,29 +369,11 @@ const LandingPage = () => {
                         </h3>
                         <div className="flex justify-between items-center">
                           <span className="text-[10px] text-gray-500">
-                            {product.brand}
-                          </span>
-                          <span className="text-[10px] px-1 py-0.5 bg-blue-500 text-white rounded-full">
-                            New
+                            {product.product_details?.area || "N/A"}
                           </span>
                         </div>
                       </div>
                     </div>
-                  ))}
-
-                  {Array.from({
-                    length: 6 - Math.min(recommendedProducts.length, 6),
-                  }).map((_, index) => (
-                    <button
-                      key={`add-${index}`}
-                      onClick={handleAddProduct}
-                      className="flex items-center justify-center h-36 md:h-40 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:text-blue-500 transition-colors"
-                    >
-                      <div className="text-center">
-                        <span className="text-2xl">+</span>
-                        <div className="text-xs mt-1">Add Product</div>
-                      </div>
-                    </button>
                   ))}
                 </div>
               )}

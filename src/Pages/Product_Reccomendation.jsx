@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Edit } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import RecommendationModal from "../components/RecommendationModal";
 import RecommendedProductsDialog from "../components/ReccomendedProductsDialog";
+
 import { ANALYSIS_DATA } from "../Pages/utils/DummyData";
 import { skinIssues } from "../Pages/utils/SkinIssueconfig";
 import { products } from "../Pages/utils/Productdata";
@@ -13,10 +14,7 @@ import {
   enrichImpurities,
   getColorByValue,
 } from "../Pages/utils/SkinAnalytics";
-
-const MOCK_USER_DATA = {
-  skinType: "Combination",
-};
+import { supabase } from "../lib/supabaseClient"; // adjust import as needed
 
 const skinTypes = ["Normal", "Dry", "Oily", "Combination", "Sensitive"];
 
@@ -25,6 +23,7 @@ const ProductRecommendations = () => {
   const [selectedDate, setSelectedDate] = useState(
     searchParams.get("date") || Object.keys(ANALYSIS_DATA)[0]
   );
+
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentData, setCurrentData] = useState(null);
@@ -32,7 +31,7 @@ const ProductRecommendations = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditingSkinType, setIsEditingSkinType] = useState(false);
-  const [userData, setUserData] = useState(MOCK_USER_DATA);
+  const [userData, setUserData] = useState({ skinType: "" }); // start empty
   const [showProductsDialog, setShowProductsDialog] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
   const [selectedImpurity, setSelectedImpurity] = useState(null);
@@ -54,6 +53,23 @@ const ProductRecommendations = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchUserSkinType = async (userId) => {
+    const { data, error } = await supabase
+      .from("user_skintype") // ← fix this
+      .select("skintype")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Failed to fetch user skin type:", error);
+      return null;
+    }
+
+    return data?.skintype || null;
   };
 
   const handleUpdateSkinType = (newType) => {
@@ -123,6 +139,31 @@ const ProductRecommendations = () => {
   useEffect(() => {
     fetchAnalysisData(selectedDate);
   }, [selectedDate]);
+
+  useEffect(() => {
+    const loadSkinType = async () => {
+      const user = await supabase.auth.getUser();
+      const userId = user?.data?.user?.id;
+
+      if (!userId) return;
+
+      try {
+        const skinTypeRecord = await fetchUserSkinType(userId);
+
+        if (skinTypeRecord) {
+          setUserData((prev) => ({ ...prev, skinType: skinTypeRecord }));
+          console.log("✅ Loaded skinType from service:", skinTypeRecord);
+        } else {
+          setUserData((prev) => ({ ...prev, skinType: "Combination" })); // fallback
+          console.log("⚠️ No skinType found — using fallback.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch skin type:", err);
+      }
+    };
+
+    loadSkinType();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:ml-[240px] relative">

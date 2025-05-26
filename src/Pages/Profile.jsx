@@ -7,6 +7,10 @@ import { toast } from "react-toastify";
 import { products } from "../Pages/utils/Productdata";
 import { mockUser, mockRoutines } from "../Pages/utils/DummyData";
 
+import { supabase } from "../lib/supabaseClient"; // adjust path as needed
+import { fetchUserSkinType } from "../service/skintypeService";
+import { fetchRecentProducts } from "../service/landingpageService";
+
 const Profile = () => {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -25,13 +29,65 @@ const Profile = () => {
   }, []);
 
   const fetchProfileData = async () => {
+    setLoading(true);
     try {
-      // Simulate API call - replace with actual database fetch
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Get current user session
+      const { data: userDetails, error: userDetailsError } = await supabase
+        .from("user_details")
+        .select("first_name, last_name, age, gender, height, weight, avatar")
+        .eq("id", userId)
+        .single();
+
+      if (userDetailsError) throw userDetailsError;
+
+      // Fetch user email
+      const { data: userData, error: userError } = await supabase
+        .from("user")
+        .select("email")
+        .eq("id", userId)
+        .single();
+
+      if (userError) throw userError;
+
+      // Fetch skin type from helper function
+      const skinTypeData = await fetchUserSkinType(userId);
+
+      // Fetch recent products (limit 2)
+      const recentProducts = await fetchRecentProducts(2);
+
+      // Set the profile data state
+      setProfileData({
+        firstName: userDetails.first_name || "",
+        lastName: userDetails.last_name || "",
+        age: userDetails.age || "",
+        gender: userDetails.gender || "",
+        height: userDetails.height || "",
+        weight: userDetails.weight || "",
+        avatar: userDetails.avatar || "",
+        email: userData.email || "",
+        skinType: skinTypeData?.skintype || "Unknown",
+      });
+
+      // Set recent products
+      setUserProducts(
+        recentProducts.map((product) => ({
+          id: product.id,
+          name: product.name,
+          image: product.product_details?.image || "",
+          impurity: product.product_details?.area || "",
+        }))
+      );
+
+      console.log("User Details:", userDetails);
+      console.log("User Email:", userData);
+      console.log("Skin Type Data:", skinTypeData);
+      console.log("Recent Products:", recentProducts);
+      // Optionally, fetch routines here if you want to replace mock routines
+
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching profile:", error);
-      toast.error("Failed to load profile data");
+      console.error("Error fetching profile:", error.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -76,28 +132,43 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    setLoading(true);
     try {
-      // Example Supabase update:
-      /*
-      const { error } = await supabase
-        .from('profiles')
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.user) throw new Error("No session");
+
+      const userId = session.user.id;
+
+      // Upsert user_details (insert or update)
+      const { error: upsertError } = await supabase
+        .from("user_details")
         .upsert({
           id: userId,
-          ...profileData,
-          updated_at: new Date().toISOString()
+          first_name: profileData.firstName,
+          last_name: profileData.lastName,
+          age: profileData.age,
+          gender: profileData.gender,
+          nickname: profileData.nickname,
+          height: profileData.height,
+          weight: profileData.weight,
+          avatar: profileData.avatar,
         });
-      
-      if (error) throw error;
-      */
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (upsertError) throw upsertError;
+
       setEditing(false);
       toast.success("Profile updated successfully!");
     } catch (error) {
+      console.error("Error saving profile:", error.message);
       toast.error("Failed to save profile");
+    } finally {
+      setLoading(false);
     }
   };
-
   const renderEditableField = (label, field, value, type = "text") => {
     const unit = field === "height" ? "cm" : field === "weight" ? "kg" : "";
     return (
@@ -204,20 +275,7 @@ const Profile = () => {
                     <Edit2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                   </button>
                 </div>
-                {editing ? (
-                  <input
-                    type="text"
-                    value={profileData.nickname}
-                    onChange={(e) =>
-                      handleInputChange("nickname", e.target.value)
-                    }
-                    className="text-gray-500 mb-3 md:mb-4 bg-transparent border-b focus:outline-none focus:border-blue-500 w-full md:w-auto"
-                  />
-                ) : (
-                  <p className="text-gray-500 mb-3 md:mb-4">
-                    @{profileData.nickname}
-                  </p>
-                )}
+
                 <div className="inline-flex gap-2">
                   <p className="text-gray-600">
                     Skintype:{" "}

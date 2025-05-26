@@ -1,8 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, RouterProvider } from "react-router-dom";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { AuthProvider } from "./context/AuthProvider";
 import App from "./App";
-import { createBrowserRouter } from "react-router-dom";
 import Login from "./Pages/LogIn";
 import Register from "./Pages/Register";
 import Intro from "./Pages/Intro";
@@ -51,6 +51,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </React.StrictMode>
 );

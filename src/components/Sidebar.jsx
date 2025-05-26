@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { useLogout } from "../Pages/hooks/hooks"; // <-- Add this import
 
 const Sidebar = ({ className }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -23,6 +24,7 @@ const Sidebar = ({ className }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [openSubMenu, setOpenSubMenu] = useState(false);
   const location = useLocation();
+  const logout = useLogout(); // <-- Use the hook
 
   const menuItems = [
     { icon: BarChart2, label: "Dashboard", path: "/lp" },
@@ -241,13 +243,14 @@ const Sidebar = ({ className }) => {
 
           {/* Logout button */}
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Link
-              to="/login"
-              className="flex items-center gap-4 px-4 py-3 rounded-lg mb-4 hover:bg-white/10 transition-colors"
+            <button
+              onClick={logout}
+              className="flex items-center gap-4 px-4 py-3 rounded-lg mb-4 hover:bg-white/10 transition-colors w-full text-left"
+              type="button"
             >
               <LogOut size={24} />
               {(!isCollapsed || isMobile) && <span>Logout</span>}
-            </Link>
+            </button>
           </motion.div>
         </nav>
       </motion.div>

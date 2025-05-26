@@ -3,7 +3,7 @@ import combi from "../../assets/combi.webp";
 
 export const skinTypes = [
   {
-    id: "1",
+    id: "Combination",
     type: "Combination",
     description:
       "Your skin can be dry or normal in some areas and oily in others, such as the T-zone (nose, forehead, and chin). Many people have this type. It may need slightly different care in different areas.",
@@ -23,7 +23,7 @@ export const skinTypes = [
     ],
   },
   {
-    id: "2",
+    id: "Oily",
     type: "Oily",
     description:
       "Oily skin produces excess sebum, leading to a shiny appearance, enlarged pores, and a tendency toward acne and blackheads. This skin type benefits from oil-control products and regular cleansing.",
@@ -49,7 +49,7 @@ export const skinTypes = [
     ],
   },
   {
-    id: "3",
+    id: "Dry",
     type: "Dry",
     description:
       "Dry skin lacks sufficient natural oils, often feeling tight and rough. It may show more visible lines and can be prone to flaking, redness, and irritation. Requires rich moisturizers and gentle care.",
@@ -76,7 +76,7 @@ export const skinTypes = [
     ],
   },
   {
-    id: "4",
+    id: "Normal",
     type: "Normal",
     description:
       "Normal skin is well-balanced, not too oily nor too dry. It has a smooth texture, small pores, and few imperfections. This skin type requires maintenance of its natural balance with gentle products.",
@@ -101,7 +101,7 @@ export const skinTypes = [
     ],
   },
   {
-    id: "5",
+    id: "Sensitive",
     type: "Sensitive",
     description:
       "Sensitive skin reacts easily to products, environmental factors, or stress, often with redness, itching, or burning. Requires hypoallergenic, fragrance-free products and gentle care.",

@@ -5,69 +5,102 @@ import { motion } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { skinTypes } from "../Pages/utils/SkintypesData";
+import {
+  fetchUserSkinType,
+  saveUserSkinType,
+  getSkinTypeDetails,
+} from "../service/skintypeService";
+import { supabase } from "../lib/supabaseClient";
 
 const ST = () => {
   const navigate = useNavigate();
   const [currentSkinType, setCurrentSkinType] = useState(null);
   const [showDialog, setShowDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState("");
+  const [selectedType, setSelectedType] = useState(skinTypes[0].id);
+  const [error, setError] = useState(null);
 
-  // Simulate fetching user's skin type from database
   useEffect(() => {
-    const fetchUserSkinType = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
-      try {
-        // Replace with actual API call
-        // const response = await fetch('/api/user/skin-type');
-        // const data = await response.json();
+      setError(null);
 
-        // For demo purposes, we'll use localStorage
-        const savedSkinType = localStorage.getItem("skinType") || "1";
-        const skinType =
-          skinTypes.find((type) => type.id === savedSkinType) || skinTypes[0];
-        setCurrentSkinType(skinType);
-        setSelectedType(skinType.id);
+      try {
+        // Get the current user
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+          navigate("/login");
+          return;
+        }
+
+        // Fetch the user's skin type from database
+        const skinTypeRecord = await fetchUserSkinType(user.id);
+
+        if (skinTypeRecord) {
+          // Get full details from local data
+          const details = getSkinTypeDetails(
+            skinTypeRecord.skintype,
+            skinTypeRecord.created_at
+          );
+
+          setCurrentSkinType(details);
+          setSelectedType(skinTypeRecord.skintype);
+        }
       } catch (error) {
-        console.error("Error fetching skin type:", error);
-        setCurrentSkinType(skinTypes[0]);
-        setSelectedType(skinTypes[0].id);
+        console.error("Error loading skin type:", error);
+        setError("Failed to load skin type data. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchUserSkinType();
-  }, []);
+    fetchData();
+  }, [navigate]);
 
   const handleSkinTypeChange = async () => {
     if (!selectedType) return;
 
     setIsLoading(true);
-    try {
-      // Replace with actual API call
-      // await fetch('/api/user/skin-type', {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ skinType: selectedType }),
-      // });
+    setError(null);
 
-      // For demo purposes, we'll use localStorage
-      localStorage.setItem("skinType", selectedType);
-      const newSkinType = skinTypes.find((type) => type.id === selectedType);
-      setCurrentSkinType(newSkinType);
+    try {
+      // Get the current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+
+      // Save to database
+      const updatedRecord = await saveUserSkinType(user.id, selectedType);
+
+      // Get full details from local data
+      const details = getSkinTypeDetails(
+        selectedType,
+        updatedRecord.created_at
+      );
+
+      setCurrentSkinType(details);
       setShowDialog(true);
 
-      // Hide the success message after 3 seconds
+      // Hide success message after 3 seconds
       setTimeout(() => setShowDialog(false), 3000);
     } catch (error) {
-      console.error("Error updating skin type:", error);
+      console.error("Error saving skin type:", error);
+      setError("Failed to save skin type. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  const noSkinType = !currentSkinType && !isLoading;
 
   if (isLoading) {
     return (
@@ -100,6 +133,17 @@ const ST = () => {
             </motion.div>
           )}
 
+          {/* Error Message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            >
+              <span className="block sm:inline">{error}</span>
+            </motion.div>
+          )}
+
           {/* Mobile App Promotion */}
           <motion.div
             whileHover={{ scale: 1.02 }}
@@ -114,7 +158,7 @@ const ST = () => {
                 <h3 className="text-lg font-semibold text-gray-300">
                   Identify Your Skin Type
                 </h3>
-                <p className="text-gray-300 ">
+                <p className="text-gray-300">
                   Use our mobile app for real-time skin analysis with your
                   phone's camera
                 </p>
@@ -128,10 +172,14 @@ const ST = () => {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">
-                  Change Your Skin Type
+                  {noSkinType
+                    ? "Select Your Skin Type"
+                    : "Change Your Skin Type"}
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Select your current skin type below
+                  {noSkinType
+                    ? "No skin type detected yet. Please select your skin type below."
+                    : "Select your current skin type below"}
                 </p>
               </div>
               <div className="flex items-center gap-4">
@@ -139,6 +187,7 @@ const ST = () => {
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
                   className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  disabled={isLoading}
                 >
                   {skinTypes.map((type) => (
                     <option key={type.id} value={type.id}>
@@ -150,168 +199,141 @@ const ST = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleSkinTypeChange}
-                  disabled={isLoading || selectedType === currentSkinType?.id}
+                  disabled={
+                    isLoading ||
+                    (currentSkinType && selectedType === currentSkinType.id)
+                  }
                   className={`px-4 py-2 rounded-lg ${
-                    isLoading || selectedType === currentSkinType?.id
+                    isLoading ||
+                    (currentSkinType && selectedType === currentSkinType.id)
                       ? "bg-gray-300 cursor-not-allowed"
                       : "bg-cyan-700 hover:bg-cyan-800 text-white"
                   }`}
                 >
-                  {isLoading ? "Saving..." : "Save Changes"}
+                  {isLoading
+                    ? "Saving..."
+                    : noSkinType
+                    ? "Save Skin Type"
+                    : "Save Changes"}
                 </motion.button>
               </div>
             </div>
           </div>
 
+          {/* Skin Type Details */}
           {currentSkinType ? (
-            <>
-              <div className="text-center mt-15 space-y-4">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  Your Skin Type is:{" "}
-                  <span className="text-purple-600">
-                    {currentSkinType.type}
-                  </span>
-                </h2>
-                <p className="text-gray-600 max-w-2xl mx-auto ">
-                  Understanding your skin type is the first step towards
-                  achieving healthy, glowing skin. Below are your personalized
-                  insights and recommendations.
-                </p>
-              </div>
-
-              {/* Main Results Card */}
-              <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
-                <div className="grid md:grid-cols-2 gap-8">
-                  {/* Left Column - Image and Description */}
-                  <div className="space-y-6">
-                    <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
-                      <img
-                        src={currentSkinType.imageUrl}
-                        alt={`${currentSkinType.type} skin type visualization`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="space-y-2 col-span-2">
-                      <p className="text-gray-600 flex ">
-                        {currentSkinType.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right Column - Characteristics and Causes */}
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">
-                        Key Characteristics
-                      </h3>
-                      <ul className="space-y-2">
-                        {currentSkinType.characteristics.map((char, index) => (
-                          <motion.li
-                            key={index}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="flex items-center space-x-3 text-gray-600"
-                          >
-                            <div className="w-2 h-2 bg-purple-300 rounded-full" />
-                            <span>{char}</span>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">
-                        Causes
-                      </h3>
-                      <ul className="space-y-2">
-                        {currentSkinType.causes.map((cause, index) => (
-                          <motion.li
-                            key={index}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="flex items-center space-x-3 text-gray-600"
-                          >
-                            <div className="w-2 h-2 bg-pink-300 rounded-full" />
-                            <span>{cause}</span>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">
-                        General Tips
-                      </h3>
-                      <ul className="space-y-2">
-                        {currentSkinType.generaltips.map((tip, index) => (
-                          <motion.li
-                            key={index}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="flex items-center space-x-3 text-gray-600"
-                          >
-                            <div className="w-2 h-2 bg-pink-300 rounded-full" />
-                            <span>{tip}</span>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-10 mt-8">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate("/routine")}
-                    className="flex-1 px-3 py-5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
-                  >
-                    Build Your Routine
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate("/download")}
-                    className="flex-1 px-3 py-5 bg-cyan-800 text-white rounded-xl hover:bg-cyan-700 transition-colors"
-                  >
-                    Track Skin Impurity
-                  </motion.button>
-                </div>
-                <p className="text-sm mt-10 opacity-65">
-                  Note : Start generating personalized routine based on your
-                  skin type by clicking the button on the left. Access our
-                  special feature by having our mobile application and start
-                  tracking your skin impurities.
-                </p>
-              </div>
-            </>
+            <SkinTypeDetails skinType={currentSkinType} navigate={navigate} />
           ) : (
-            <div className="text-center space-y-6 mt-12">
-              <h2 className="text-2xl font-semibold text-gray-900">
-                No Skin Analysis Results Yet
-              </h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">
-                Get started by identifying your skin type using our mobile app.
-                Our advanced AI technology will analyze your skin and provide
-                personalized recommendations.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate("/download")}
-                className="px-8 py-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors"
-              >
-                Download App Now
-              </motion.button>
-            </div>
+            <NoSkinTypeDetected />
           )}
         </motion.div>
       </main>
     </div>
   );
 };
+
+const SkinTypeDetails = ({ skinType, navigate }) => (
+  <>
+    <div className="text-center mt-15 space-y-4">
+      <h2 className="text-2xl font-semibold text-gray-900">
+        Your Skin Type is:{" "}
+        <span className="text-purple-600">{skinType.type}</span>
+      </h2>
+      {skinType.lastChecked && (
+        <p className="text-gray-600 max-w-2xl mx-auto">
+          Last checked: {new Date(skinType.lastChecked).toLocaleDateString()}
+        </p>
+      )}
+      <p className="text-gray-600 max-w-2xl mx-auto">{skinType.description}</p>
+    </div>
+
+    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Left Column - Image */}
+        <div className="space-y-6">
+          <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
+            {skinType.imageUrl?.length > 0 && (
+              <img
+                src={skinType.imageUrl[0]}
+                alt={`${skinType.type} skin type`}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Right Column - Details */}
+        <div className="space-y-6">
+          <SkinTypeSection
+            title="Key Characteristics"
+            items={skinType.characteristics}
+            color="purple"
+          />
+          <SkinTypeSection
+            title="Causes"
+            items={skinType.causes}
+            color="pink"
+          />
+          <SkinTypeSection
+            title="General Tips"
+            items={skinType.generaltips}
+            color="pink"
+          />
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-10 mt-8">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate("/routine")}
+          className="flex-1 px-3 py-5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
+        >
+          Build Your Routine
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate("/download")}
+          className="flex-1 px-3 py-5 bg-cyan-800 text-white rounded-xl hover:bg-cyan-700 transition-colors"
+        >
+          Track Skin Impurity
+        </motion.button>
+      </div>
+    </div>
+  </>
+);
+
+const SkinTypeSection = ({ title, items, color = "purple" }) => (
+  <div>
+    <h3 className="text-lg font-medium text-gray-900 mb-3">{title}</h3>
+    <ul className="space-y-2">
+      {items.map((item, index) => (
+        <motion.li
+          key={index}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className="flex items-center space-x-3 text-gray-600"
+        >
+          <div className={`w-2 h-2 bg-${color}-300 rounded-full`} />
+          <span>{item}</span>
+        </motion.li>
+      ))}
+    </ul>
+  </div>
+);
+
+const NoSkinTypeDetected = () => (
+  <div className="text-center space-y-6 mt-12">
+    <h2 className="text-2xl font-semibold text-gray-900">
+      No Skin Type Detected Yet
+    </h2>
+    <p className="text-gray-600 max-w-2xl mx-auto">
+      Please select your skin type above and click "Save Skin Type" to continue.
+    </p>
+  </div>
+);
 
 export default ST;

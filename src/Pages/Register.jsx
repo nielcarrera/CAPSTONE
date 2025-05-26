@@ -9,7 +9,7 @@ import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
 import logo from "../assets/weblogo.png";
-import supabase from "../supabase";
+import { supabase } from "../lib/supabaseClient";
 
 const Register = () => {
   const [firstName, setFirstName] = useState("");
@@ -24,6 +24,53 @@ const Register = () => {
 
   const navigate = useNavigate();
 
+  const insertUserData = async (userId, email, userData) => {
+    // Insert into the correct table name "user"
+    const {
+      data,
+      error: userError,
+      status,
+    } = await supabase
+      .from("user")
+      .insert([{ id: userId, email }])
+      .select();
+
+    console.log("Insert 'user' response:", { data, userError, status });
+
+    if (userError) {
+      throw new Error(`Insert into user failed: ${JSON.stringify(userError)}`);
+    }
+
+    const {
+      data: detailsData,
+      error: detailsError,
+      status: detailsStatus,
+    } = await supabase
+      .from("user_details")
+      .insert([
+        {
+          id: userId,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          age: userData.age,
+          gender: userData.gender,
+        },
+      ])
+      .select();
+
+    console.log("Insert 'user_details' response:", {
+      detailsData,
+      detailsError,
+      detailsStatus,
+    });
+
+    if (detailsError) {
+      throw new Error(
+        `Insert into user_details failed: ${JSON.stringify(detailsError)}`
+      );
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -31,6 +78,7 @@ const Register = () => {
       alert("Passwords do not match!");
       return;
     }
+
     if (!agree) {
       alert("You must agree to the Terms & Conditions.");
       return;
@@ -39,66 +87,53 @@ const Register = () => {
     setLoading(true);
 
     try {
-      // Step 1: Register the user using Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            age,
+            gender,
+          },
+        },
       });
 
       if (authError) {
-        // Check if the error is due to the email already being registered
-        if (authError.message.includes("User already registered")) {
-          alert(
-            "This email is already registered. Please use a different email or log in."
-          );
+        if (authError.message.includes("already registered")) {
+          alert("This email is already registered. Please log in.");
         } else {
-          console.error("Auth Error:", authError);
-          throw new Error(`Authentication failed: ${authError.message}`);
+          alert(authError.message);
         }
-        return; // Stop further execution
+        return;
       }
 
-      if (!authData.user) {
-        throw new Error("User registration failed. No user data returned.");
+      // Attempt to get the user ID if not returned directly
+      const userId = authData.user?.id || authData.session?.user?.id;
+
+      if (!userId) {
+        throw new Error("User ID not returned after registration.");
       }
 
-      const userId = authData.user.id;
-      console.log("User ID:", userId); // Debugging line
+      // Then insert into your custom tables
+      await insertUserData(userId, email, {
+        first_name: firstName,
+        last_name: lastName,
+        age,
+        gender,
+      });
 
-      // Optional: Add a small delay to ensure the user is fully registered
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
-
-      // Step 2: Insert user details into the 'userDetails' table
-      const { data: detailsData, error: detailsError } = await supabase
-        .from("userDetails")
-        .insert([
-          {
-            firstName,
-            lastName,
-            age: parseInt(age),
-            gender,
-            userId, // Associate details with the authenticated user's ID
-          },
-        ]);
-
-      if (detailsError) {
-        console.error("Details Error:", detailsError);
-        throw new Error(
-          `Failed to insert user details: ${detailsError.message}`
-        );
-      }
-
-      alert(
-        "Registration successful! Please check your email to confirm your account."
-      );
+      alert("Registration successful!");
       navigate("/login");
-    } catch (error) {
-      console.error("Registration Error:", error.message);
-      alert("Error during registration. Please try again.");
+    } catch (err) {
+      console.error("Registration error:", err);
+      alert("An error occurred during registration.");
     } finally {
       setLoading(false);
     }
   };
+
   const features = [
     {
       image: reg1,

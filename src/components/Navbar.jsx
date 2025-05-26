@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "../assets/weblogo.png";
+import { useLogout } from "../Pages/hooks/hooks"; // Import your hook
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const logout = useLogout(); // Get the logout function
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -46,15 +48,15 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Logout Button */}
-          <Link
-            to="/login"
-            className="hidden md:block bg-gray-800 font-semibold  text-white px-15 py-3 rounded-md text-sm font-medium 
+          {/* Desktop Logout Button */}
+          <button
+            onClick={logout}
+            className="hidden md:block bg-gray-800 font-semibold text-white px-15 py-3 rounded-md text-sm font-medium 
               transition-all duration-300 shadow-sm hover:shadow-md hover:bg-gray-600 
               transform hover:scale-105 active:scale-95"
           >
             Logout
-          </Link>
+          </button>
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
@@ -88,13 +90,13 @@ const Navbar = () => {
                 {item.title}
               </Link>
             ))}
-            <Link
-              to="/logout"
-              className=" text-left bg-gray-900 text-white px-15 py-2 rounded-md text-base font-medium 
-                transition-all duration-300 hover:bg-gray-700 transform hover:scale-105 active:scale-95"
+            <button
+              onClick={logout}
+              className="text-left bg-gray-900 text-white px-15 py-2 rounded-md text-base font-medium 
+                transition-all duration-300 hover:bg-gray-700 transform hover:scale-105 active:scale-95 w-full"
             >
               Logout
-            </Link>
+            </button>
           </div>
         </div>
       </div>

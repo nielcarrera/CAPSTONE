@@ -6,7 +6,7 @@ import introimg from "../assets/char.png";
 import s1 from "../assets/slide1.png";
 import s2 from "../assets/slide2.png";
 import s3 from "../assets/slide3.png";
-import supabase from "../supabase";
+import { supabase } from "../lib/supabaseClient";
 
 const slides = [
   {

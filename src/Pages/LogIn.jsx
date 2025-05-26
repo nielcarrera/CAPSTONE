@@ -12,7 +12,7 @@ import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
 import logo from "../assets/weblogo.png";
-import supabase from "../supabase";
+import { supabase } from "../lib/supabaseClient";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -24,11 +24,57 @@ const Login = () => {
   const navigate = useNavigate();
   const goToRegister = () => navigate("/register");
 
+  const insertUserDataIfMissing = async (userId, userEmail) => {
+    // Check if user exists in our custom tables
+    const { data: existingUser, error: fetchError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      // PGRST116 is the code for no rows found
+      throw fetchError;
+    }
+
+    if (!existingUser) {
+      // Get user metadata from auth
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const userPayload = {
+        id: userId,
+        email: userEmail,
+        first_name: user.user_metadata?.first_name || "",
+        last_name: user.user_metadata?.last_name || "",
+        age: Number(user.user_metadata?.age) || null,
+        gender: user.user_metadata?.gender || "",
+        created_at: new Date().toISOString(),
+      };
+
+      // Insert into users table
+      const { error: userError } = await supabase
+        .from("users")
+        .insert([userPayload]);
+
+      if (userError) throw userError;
+
+      // Insert into user_details table
+      const { error: detailsError } = await supabase
+        .from("user_details")
+        .insert([userPayload]);
+
+      if (detailsError) throw detailsError;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Sign in with Supabase Auth
       const {
         data: { session },
         error,
@@ -46,7 +92,7 @@ const Login = () => {
         } else {
           throw error;
         }
-        throw error;
+        return;
       }
 
       if (!session) {
@@ -54,52 +100,26 @@ const Login = () => {
         return;
       }
 
-      // Step 1: Validate user existence
+      // Ensure user data exists in our custom tables
+      await insertUserDataIfMissing(session.user.id, email);
+
+      localStorage.setItem("userEmail", email);
+
+      // Check if user has seen intro (you might want to adjust this logic)
       const { data: userData, error: userError } = await supabase
-        .from("user")
-        .select("*")
-        .eq("email", email)
-        .limit(1);
+        .from("user_details")
+        .select("has_seen_intro")
+        .eq("id", session.user.id)
+        .single();
 
-      if (userError) {
-        throw userError;
-      }
+      if (userError) throw userError;
 
-      if (userData.length === 0) {
-        toast.error("User not found", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        return;
-      }
-
-      // Step 2: Validate password
-      const user = userData[0];
-      if (user.password !== password) {
-        toast.error("Invalid password", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        return;
-      }
-
-      localStorage.setItem("userEmail", email); // Store the user's email
-
-      if (!user.has_seen_intro) {
+      if (!userData?.has_seen_intro) {
         navigate("/intro");
       } else {
         navigate("/lp");
       }
 
-      // Show success message
       toast.success("Login successful!", {
         position: "top-center",
         autoClose: 3000,
@@ -151,6 +171,13 @@ const Login = () => {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (session) {
+      navigate("/lp");
+    }
+  }, [session, navigate]);
+
   if (!session) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white p-4 ">
@@ -269,17 +296,7 @@ const Login = () => {
       </div>
     );
   } else {
-    return (
-      <div>
-        Logged in! {session.user.email}
-        <button
-          onClick={signOut}
-          className="bg-red-500 text-white px-4 py-2 rounded"
-        >
-          Sign Out
-        </button>
-      </div>
-    );
+    return null;
   }
 };
 
