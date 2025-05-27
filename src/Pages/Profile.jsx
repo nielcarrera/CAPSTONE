@@ -9,7 +9,7 @@ import { mockUser, mockRoutines } from "../Pages/utils/DummyData";
 
 import { supabase } from "../lib/supabaseClient"; // adjust path as needed
 import { fetchUserSkinType } from "../service/skintypeService";
-import { fetchRecentProducts } from "../service/landingpageService";
+import { fetchUserSavedProducts } from "../service/productService"; // import it
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -24,6 +24,20 @@ const Profile = () => {
     products[1], // Benzoyl Peroxide Treatment Gel
   ]);
 
+  const [currentProductIndex, setCurrentProductIndex] = useState(0);
+
+  useEffect(() => {
+    if (userProducts.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentProductIndex(
+        (prevIndex) => (prevIndex + 1) % userProducts.length
+      );
+    }, 3000); // change every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [userProducts]);
+
   useEffect(() => {
     fetchProfileData();
   }, []);
@@ -31,10 +45,19 @@ const Profile = () => {
   const fetchProfileData = async () => {
     setLoading(true);
     try {
-      // Get current user session
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.user) throw new Error("No session");
+
+      const userId = session.user.id;
+
+      // Fetch basic profile info (no avatar, height, weight)
       const { data: userDetails, error: userDetailsError } = await supabase
         .from("user_details")
-        .select("first_name, last_name, age, gender, height, weight, avatar")
+        .select("first_name, last_name, age, gender")
         .eq("id", userId)
         .single();
 
@@ -49,40 +72,24 @@ const Profile = () => {
 
       if (userError) throw userError;
 
-      // Fetch skin type from helper function
+      // Fetch skin type
       const skinTypeData = await fetchUserSkinType(userId);
 
-      // Fetch recent products (limit 2)
-      const recentProducts = await fetchRecentProducts(2);
-
-      // Set the profile data state
+      // Set profile state with dummy avatar/height/weight
       setProfileData({
         firstName: userDetails.first_name || "",
         lastName: userDetails.last_name || "",
         age: userDetails.age || "",
         gender: userDetails.gender || "",
-        height: userDetails.height || "",
-        weight: userDetails.weight || "",
-        avatar: userDetails.avatar || "",
+        avatar: "https://via.placeholder.com/100", // dummy avatar
+        height: "Not set", // dummy data
+        weight: "Not set", // dummy data
         email: userData.email || "",
         skinType: skinTypeData?.skintype || "Unknown",
       });
 
-      // Set recent products
-      setUserProducts(
-        recentProducts.map((product) => ({
-          id: product.id,
-          name: product.name,
-          image: product.product_details?.image || "",
-          impurity: product.product_details?.area || "",
-        }))
-      );
-
-      console.log("User Details:", userDetails);
-      console.log("User Email:", userData);
-      console.log("Skin Type Data:", skinTypeData);
-      console.log("Recent Products:", recentProducts);
-      // Optionally, fetch routines here if you want to replace mock routines
+      const savedProducts = await fetchUserSavedProducts(userId);
+      setUserProducts(savedProducts);
 
       setLoading(false);
     } catch (error) {
@@ -105,21 +112,6 @@ const Profile = () => {
     if (!file) return;
 
     try {
-      // Example Supabase storage upload:
-      /*
-      const fileName = `avatar-${Date.now()}`;
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file);
-      
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-      */
-
-      // Simulate upload
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileData((prev) => ({ ...prev, avatar: reader.result }));
@@ -143,7 +135,6 @@ const Profile = () => {
 
       const userId = session.user.id;
 
-      // Upsert user_details (insert or update)
       const { error: upsertError } = await supabase
         .from("user_details")
         .upsert({
@@ -152,10 +143,6 @@ const Profile = () => {
           last_name: profileData.lastName,
           age: profileData.age,
           gender: profileData.gender,
-          nickname: profileData.nickname,
-          height: profileData.height,
-          weight: profileData.weight,
-          avatar: profileData.avatar,
         });
 
       if (upsertError) throw upsertError;
@@ -169,35 +156,45 @@ const Profile = () => {
       setLoading(false);
     }
   };
-  const renderEditableField = (label, field, value, type = "text") => {
+
+  const renderEditableField = (
+    label,
+    field,
+    value,
+    type = "text",
+    disabled = false
+  ) => {
     const unit = field === "height" ? "cm" : field === "weight" ? "kg" : "";
+
     return (
       <div className="space-y-2">
         <label className="text-sm text-gray-500">{label}</label>
-        {editing ? (
-          type === "select" ? (
-            <select
-              value={value}
-              onChange={(e) => handleInputChange(field, e.target.value)}
-              className="w-full p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-800"
-            >
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
+        <div className="p-2 border border-gray-200 rounded-lg bg-gray-50">
+          {editing && !disabled ? (
+            type === "select" ? (
+              <select
+                value={value}
+                onChange={(e) => handleInputChange(field, e.target.value)}
+                className="w-full p-2 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-800"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            ) : (
+              <input
+                type={type}
+                value={value}
+                onChange={(e) => handleInputChange(field, e.target.value)}
+                className="w-full p-2 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-800"
+              />
+            )
           ) : (
-            <input
-              type={type}
-              value={value}
-              onChange={(e) => handleInputChange(field, e.target.value)}
-              className="w-full p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-cyan-800"
-            />
-          )
-        ) : (
-          <p className="text-gray-800 p-2">
-            {value} {unit}
-          </p>
-        )}
+            <p className="text-gray-800">
+              {value} {unit}
+            </p>
+          )}
+        </div>
       </div>
     );
   };
@@ -222,70 +219,64 @@ const Profile = () => {
       <div className="p-4 md:p-8 lg:ml-64 mt-20">
         <div className="max-w-6xl mx-auto">
           {/* Profile Header */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8  ">
-            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
-              <div className="relative group">
-                <img
-                  src={profileData.avatar}
-                  alt="Profile"
-                  className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-                {editing && (
-                  <label className="absolute bottom-0 right-0 bg-cyan-800 p-2 rounded-full cursor-pointer group-hover:bg-cyan-600 transition-colors shadow-lg">
-                    <Camera className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                  </label>
-                )}
-              </div>
-              <div className="flex-1 w-full">
-                <div className="flex flex-col md:flex-row items-center md:items-end gap-2 md:gap-4 mb-2">
-                  {editing ? (
-                    <div className="flex flex-col md:flex-row gap-2 w-full">
-                      <input
-                        type="text"
-                        value={profileData.firstName}
-                        onChange={(e) =>
-                          handleInputChange("firstName", e.target.value)
-                        }
-                        className="text-xl md:text-2xl font-bold text-gray-800 bg-transparent border-b-2 focus:outline-none focus:border-blue-500"
-                      />
-                      <input
-                        type="text"
-                        value={profileData.lastName}
-                        onChange={(e) =>
-                          handleInputChange("lastName", e.target.value)
-                        }
-                        className="text-xl md:text-2xl font-bold text-gray-800 bg-transparent border-b-2 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  ) : (
-                    <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-                      {profileData.firstName} {profileData.lastName}
-                    </h1>
-                  )}
-                  <button
-                    onClick={handleEdit}
-                    className="p-1 md:p-2 rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                  </button>
-                </div>
-
-                <div className="inline-flex gap-2">
-                  <p className="text-gray-600">
-                    Skintype:{" "}
-                    <span className="px-2 md:px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs md:text-sm">
-                      {profileData.skinType}
-                    </span>
-                  </p>
-                </div>
-              </div>
+          {/* Profile Header */}
+          <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8 flex flex-col items-center text-center">
+            <div className="relative group mb-4">
+              <img
+                src={profileData.avatar}
+                alt="Profile"
+                className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-lg mx-auto"
+              />
+              {editing && (
+                <label className="absolute bottom-0 right-0 bg-cyan-800 p-2 rounded-full cursor-pointer group-hover:bg-cyan-600 transition-colors shadow-lg">
+                  <Camera className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                </label>
+              )}
             </div>
+
+            {editing ? (
+              <div className="flex flex-col sm:flex-row gap-2 justify-center items-center mb-2">
+                <input
+                  type="text"
+                  value={profileData.firstName}
+                  onChange={(e) =>
+                    handleInputChange("firstName", e.target.value)
+                  }
+                  className="text-xl md:text-2xl font-bold text-center bg-transparent border-b-2 focus:outline-none focus:border-blue-500"
+                />
+                <input
+                  type="text"
+                  value={profileData.lastName}
+                  onChange={(e) =>
+                    handleInputChange("lastName", e.target.value)
+                  }
+                  className="text-xl md:text-2xl font-bold text-center bg-transparent border-b-2 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            ) : (
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">
+                {profileData.firstName} {profileData.lastName}
+              </h1>
+            )}
+
+            <div className="text-center mt-5">
+              <span className="px-10 py-2 bg-blue-100 text-cyan-800 rounded-full text-md md:text-base font-bold">
+                Skin Type: {profileData.skinType}
+              </span>
+            </div>
+
+            <button
+              onClick={handleEdit}
+              className="mt-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <Edit2 className="w-5 h-5 text-blue-600" />
+            </button>
           </div>
 
           {/* Main Content */}
@@ -417,38 +408,27 @@ const Profile = () => {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                  {userProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center gap-3 md:gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
+                  {userProducts.length > 0 ? (
+                    <div className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg shadow-sm bg-gray-50 sm:col-span-2">
                       <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover"
+                        src={userProducts[currentProductIndex].image}
+                        alt={userProducts[currentProductIndex].name}
+                        className="w-24 h-24 md:w-40 md:h-40 rounded-xl object-cover mb-4"
                       />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm md:text-base text-gray-800 truncate">
-                          {product.name}
-                        </h3>
-                        <p className="text-xs md:text-sm text-blue-600 truncate">
-                          Targets: {product.impurity}
-                        </p>
-                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {userProducts[currentProductIndex].name}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Area: {userProducts[currentProductIndex].area}
+                      </p>
+                      <p className="text-sm text-cyan-700 font-semibold mt-1">
+                        Targets: {userProducts[currentProductIndex].impurity}
+                      </p>
                     </div>
-                  ))}
-
-                  {/* Add Product Button if less than 4 */}
-                  {userProducts.length < 4 && (
-                    <button
-                      onClick={() => navigate("/prodrecco")}
-                      className={`p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors flex flex-col items-center justify-center gap-2 ${
-                        userProducts.length % 2 === 0 ? "sm:col-span-2" : ""
-                      }`}
-                    >
-                      <Plus className="w-5 h-5 text-gray-400" />
-                      <span className="text-sm text-gray-500">Add Product</span>
-                    </button>
+                  ) : (
+                    <p className="text-gray-500 text-center sm:col-span-2">
+                      No products saved yet.
+                    </p>
                   )}
                 </div>
               </div>

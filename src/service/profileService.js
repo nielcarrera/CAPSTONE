@@ -1,70 +1,63 @@
-// src/service/profileService.js
-import { supabase } from "../lib/supabaseClient";
-import { fetchUserSkinType } from "./skinTypeService";
-import { fetchRecentProducts } from "./landingPageService";
+import { supabase } from "../supabaseClient";
+import { fetchUserSkinType } from "./skintypeService";
+import { fetchRecentProducts } from "./landingpageService";
 
 export const fetchUserProfile = async (userId) => {
   try {
-    // Fetch data from multiple tables in parallel
-    const [
-      { data: userDetails, error: detailsError },
-      { data: userEmail, error: emailError },
-      skinTypeRecord,
-      productsData,
-    ] = await Promise.all([
-      supabase
-        .from("user_details")
-        .select(
-          "first_name, last_name, age, gender, height, weight, avatar_url"
-        )
-        .eq("id", userId)
-        .maybeSingle(),
+    // Fetch basic user details (email)
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("email")
+      .eq("id", userId)
+      .single();
 
-      supabase.from("users").select("email").eq("id", userId).maybeSingle(),
+    if (userError) throw userError;
 
-      fetchUserSkinType(userId),
+    // Fetch additional user details (first_name, last_name, age, gender)
+    const { data: userDetailsData, error: userDetailsError } = await supabase
+      .from("user_details")
+      .select("first_name, last_name, age, gender")
+      .eq("id", userId)
+      .single();
 
-      fetchRecentProducts(4),
-    ]);
+    if (userDetailsError) throw userDetailsError;
 
-    if (detailsError) throw detailsError;
-    if (emailError) throw emailError;
+    // Fetch skin type
+    const skinTypeData = await fetchUserSkinType(userId);
+
+    // Fetch recent products
+    const productsData = await fetchRecentProducts();
 
     return {
-      profileData: {
-        firstName: userDetails?.first_name || "",
-        lastName: userDetails?.last_name || "",
-        nickname: "", // Add to your schema if needed
-        email: userEmail?.email || "",
-        age: userDetails?.age || "",
-        gender: userDetails?.gender || "",
-        height: userDetails?.height || "",
-        weight: userDetails?.weight || "",
-        skinType: skinTypeRecord?.skintype || "Not set",
-        avatar: userDetails?.avatar_url || "https://via.placeholder.com/150",
-      },
-      userProducts: productsData || [],
+      email: userData.email,
+      firstName: userDetailsData?.first_name || "",
+      lastName: userDetailsData?.last_name || "",
+      age: userDetailsData?.age || "",
+      gender: userDetailsData?.gender || "",
+      skinType: skinTypeData?.skintype || "Unknown",
+      products: productsData || [],
+      avatar: "", // Default empty avatar
     };
   } catch (error) {
-    console.error("Error fetching profile:", error);
+    console.error("Error fetching user profile:", error);
     throw error;
   }
 };
 
 export const updateUserProfile = async (userId, profileData) => {
   try {
-    const { error } = await supabase.from("user_details").upsert({
+    // Update user_details table with only the fields we have
+    const { error: detailsError } = await supabase.from("user_details").upsert({
       id: userId,
       first_name: profileData.firstName,
       last_name: profileData.lastName,
       age: profileData.age,
       gender: profileData.gender,
-      height: profileData.height,
-      weight: profileData.weight,
       updated_at: new Date().toISOString(),
     });
 
-    if (error) throw error;
+    if (detailsError) throw detailsError;
+
     return true;
   } catch (error) {
     console.error("Error updating profile:", error);
@@ -74,48 +67,25 @@ export const updateUserProfile = async (userId, profileData) => {
 
 export const uploadProfileImage = async (userId, file) => {
   try {
-    // Upload to Supabase Storage
-    const fileName = `avatars/${userId}-${Date.now()}`;
+    const fileName = `avatar-${userId}-${Date.now()}`;
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${fileName}.${fileExt}`;
+
+    // Upload the file to Supabase storage
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(fileName, file);
+      .upload(filePath, file);
 
     if (uploadError) throw uploadError;
 
-    // Get public URL
+    // Get the public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from("avatars").getPublicUrl(fileName);
-
-    // Update user_details table
-    const { error: updateError } = await supabase
-      .from("user_details")
-      .update({ avatar_url: publicUrl })
-      .eq("id", userId);
-
-    if (updateError) throw updateError;
+    } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
     return publicUrl;
   } catch (error) {
-    console.error("Error uploading image:", error);
+    console.error("Error uploading profile image:", error);
     throw error;
   }
-};
-
-// Mock routines - replace with actual service if needed
-export const fetchUserRoutines = async () => {
-  return [
-    {
-      id: "1",
-      name: "Morning Routine",
-      time: "7:00 AM",
-      steps: 4,
-    },
-    {
-      id: "2",
-      name: "Night Routine",
-      time: "10:00 PM",
-      steps: 5,
-    },
-  ];
 };

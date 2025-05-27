@@ -1,10 +1,7 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { X } from "lucide-react";
-import {
-  products,
-  skinImpurities,
-  skinTypes,
-} from "../../Pages/utils/Productdata";
+import { skinImpurities, skinTypes } from "../../Pages/utils/Productdata";
+import { fetchFaceProductToProductRoutines } from "../../service/routineproductsService";
 
 const ProductListDialog = ({ open, onClose, onSelectProduct }) => {
   const [filters, setFilters] = useState({
@@ -14,8 +11,27 @@ const ProductListDialog = ({ open, onClose, onSelectProduct }) => {
     area: "face", // Added area filter
   });
 
+  const [userProducts, setUserProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const products = await fetchFaceProductToProductRoutines();
+        console.log("✅ Products fetched from DB:", products);
+        setUserProducts(products);
+      } catch (error) {
+        console.error("❌ Failed to fetch face products:", error);
+      }
+    };
+
+    if (open) {
+      fetchProducts();
+    }
+  }, [open]);
+  console.log("🧪 Current filters:", filters);
+
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    return userProducts.filter((product) => {
       const matchesArea =
         filters.area === "all" || product.area === filters.area;
       const matchesType =
@@ -31,10 +47,14 @@ const ProductListDialog = ({ open, onClose, onSelectProduct }) => {
 
       return matchesArea && matchesType && matchesImpurity && matchesSkinType;
     });
-  }, [filters]);
+  }, [filters, userProducts]);
+
+  // ✅ Now it's safe to log
+  console.log("👀 Filtered products to display:", filteredProducts.length);
 
   const handleProductClick = (product) => {
-    onSelectProduct(product.name);
+    onSelectProduct(product);
+
     onClose();
   };
 
@@ -179,7 +199,8 @@ const ProductListDialog = ({ open, onClose, onSelectProduct }) => {
                     </span>
                   ) : (
                     <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                      {product.bodyPart}
+                      {product.area.charAt(0).toUpperCase() +
+                        product.area.slice(1)}
                     </span>
                   )}
                 </div>

@@ -27,7 +27,7 @@ const Login = () => {
   const insertUserDataIfMissing = async (userId, userEmail) => {
     // Check if user exists in our custom tables
     const { data: existingUser, error: fetchError } = await supabase
-      .from("users")
+      .from("user") // ✅ correct table name
       .select("id")
       .eq("id", userId)
       .single();
@@ -54,8 +54,9 @@ const Login = () => {
       };
 
       // Insert into users table
+      // Insert into user table
       const { error: userError } = await supabase
-        .from("users")
+        .from("user") // ✅ correct table
         .insert([userPayload]);
 
       if (userError) throw userError;
@@ -107,14 +108,20 @@ const Login = () => {
 
       // Check if user has seen intro (you might want to adjust this logic)
       const { data: userData, error: userError } = await supabase
-        .from("user_details")
-        .select("has_seen_intro")
+        .from("user")
+        .select("first_time")
         .eq("id", session.user.id)
         .single();
 
       if (userError) throw userError;
 
-      if (!userData?.has_seen_intro) {
+      if (userData?.first_time) {
+        // Update first_time to false
+        await supabase
+          .from("user")
+          .update({ first_time: false })
+          .eq("id", session.user.id);
+
         navigate("/intro");
       } else {
         navigate("/lp");
@@ -171,12 +178,6 @@ const Login = () => {
     });
     return () => subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (session) {
-      navigate("/lp");
-    }
-  }, [session, navigate]);
 
   if (!session) {
     return (

@@ -52,12 +52,13 @@ const IntroScreen = () => {
 
   useEffect(() => {
     const markIntroAsSeen = async () => {
-      const userEmail = localStorage.getItem("userEmail");
-      if (userEmail) {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (user) {
         const { error } = await supabase
-          .from("userDetails")
-          .update({ has_seen_intro: true })
-          .eq("email", userEmail);
+          .from("user")
+          .update({ first_time: false })
+          .eq("id", user.id);
         if (error) console.error("Error updating intro status:", error);
       }
     };
@@ -66,7 +67,7 @@ const IntroScreen = () => {
 
   const nextSlide = () => {
     if (currentSlide === slides.length - 1) {
-      navigate("/home");
+      setTimeout(() => navigate("/lp"), 200); // small delay for UX
     } else {
       setCurrentSlide((prev) => prev + 1);
     }

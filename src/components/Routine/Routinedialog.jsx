@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Plus, X, Trash, Edit } from "lucide-react";
 import ProductListDialog from "./ProductListDialog";
+import { saveRoutine } from "../../service/routineService";
+import { supabase } from "../../lib/supabaseClient"; // Adjust relative path as needed
 
 const timeOptions = Array.from({ length: 24 }, (_, i) => {
   const hour = i % 12 || 12;
@@ -8,7 +10,7 @@ const timeOptions = Array.from({ length: 24 }, (_, i) => {
   return `${hour}:00 ${ampm}`;
 });
 
-const RoutineDialog = ({ open, onOpenChange, onSave }) => {
+const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
   const [routineData, setRoutineData] = useState({
     type: "Morning",
     name: "",
@@ -29,21 +31,20 @@ const RoutineDialog = ({ open, onOpenChange, onSave }) => {
     setSteps((prevSteps) => prevSteps.filter((step) => step.id !== id));
   };
 
-  const handleProductSelect = (productName) => {
+  const handleProductSelect = (product) => {
+    console.log("Handle product select:", product);
     setSteps((prevSteps) =>
-      prevSteps.map((step) =>
-        step.id === currentStepId ? { ...step, product: productName } : step
-      )
+      prevSteps.map((step) => {
+        if (step.id === currentStepId) {
+          console.log(
+            `Updating step ${step.id} with product id ${product.id} and name ${product.name}`
+          );
+          return { ...step, productId: product.id, productName: product.name };
+        }
+        return step;
+      })
     );
-    setShowProductDialog(false); // Close dialog after selection
-  };
-
-  const handleProductChange = (stepId, value) => {
-    setSteps((prevSteps) =>
-      prevSteps.map((step) =>
-        step.id === stepId ? { ...step, product: value } : step
-      )
-    );
+    setShowProductDialog(false);
   };
 
   const handleNoteChange = (stepId, value) => {
@@ -61,13 +62,34 @@ const RoutineDialog = ({ open, onOpenChange, onSave }) => {
   const handleSave = async () => {
     setIsSubmitting(true);
     try {
+      // Step 1: Get current user from Supabase auth
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (error || !user) {
+        alert("You must be logged in to save a routine.");
+        setIsSubmitting(false);
+        return;
+      }
+      const currentUserId = user.id;
+
+      // Step 2: Prepare routine data
       const routineToSave = {
         ...routineData,
-        steps: steps.filter((step) => step.product.trim() !== ""), // Remove empty steps
+        steps: steps
+          .filter((step) => step.productId) // must have productId UUID
+          .map(({ id, productId, note }) => ({
+            stepNumber: id,
+            product: productId,
+            note,
+          })),
         createdAt: new Date().toISOString(),
       };
 
-      await onSave(routineToSave);
+      // Step 3: Call your saveRoutine with currentUserId
+      await saveRoutine(routineToSave, currentUserId);
+
       alert("Routine saved successfully!");
       onOpenChange(false);
     } catch (error) {
@@ -77,194 +99,198 @@ const RoutineDialog = ({ open, onOpenChange, onSave }) => {
     }
   };
 
-  if (!open) return null;
-
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-opacity-50 backdrop-blur-sm">
-        <div className="bg-white rounded-lg max-w-3xl w-full relative border border-gray-800 shadow-xl max-h-[90vh] flex flex-col">
-          <div className="p-6 flex-grow overflow-auto">
-            <button
-              onClick={() => onOpenChange(false)}
-              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg max-w-3xl w-full relative border border-gray-800 shadow-xl max-h-[90vh] flex flex-col">
+            <div className="p-6 flex-grow overflow-auto">
+              <button
+                onClick={() => onOpenChange(false)}
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            <h2 className="text-xl font-semibold mb-6">Create New Routine</h2>
+              <h2 className="text-xl font-semibold mb-6">Create New Routine</h2>
 
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Routine Type
-                  </label>
-                  <select
-                    value={routineData.type}
-                    onChange={(e) =>
-                      handleRoutineChange("type", e.target.value)
-                    }
-                    className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option>Morning</option>
-                    <option>Night</option>
-                    <option>Custom</option>
-                  </select>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Routine Type
+                    </label>
+                    <select
+                      value={routineData.type}
+                      onChange={(e) =>
+                        handleRoutineChange("type", e.target.value)
+                      }
+                      className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option>Morning</option>
+                      <option>Night</option>
+                      <option>Custom</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Routine Name
+                    </label>
+                    <input
+                      type="text"
+                      value={routineData.name}
+                      onChange={(e) =>
+                        handleRoutineChange("name", e.target.value)
+                      }
+                      placeholder="e.g. 'My Glow Routine'"
+                      className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Time
+                    </label>
+                    <select
+                      value={routineData.time}
+                      onChange={(e) =>
+                        handleRoutineChange("time", e.target.value)
+                      }
+                      className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {timeOptions.map((time) => (
+                        <option key={time}>{time}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Duration (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={routineData.duration}
+                      onChange={(e) =>
+                        handleRoutineChange(
+                          "duration",
+                          parseInt(e.target.value)
+                        )
+                      }
+                      className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Routine Name
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Routine Steps
                   </label>
-                  <input
-                    type="text"
-                    value={routineData.name}
-                    onChange={(e) =>
-                      handleRoutineChange("name", e.target.value)
-                    }
-                    placeholder="e.g. 'My Glow Routine'"
-                    className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
+                  <div className="space-y-3">
+                    {steps.map((step) => (
+                      <div key={step.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="font-medium">Step {step.id}</span>
+                          {steps.length > 1 && (
+                            <button
+                              onClick={() => handleDeleteStep(step.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Time
-                  </label>
-                  <select
-                    value={routineData.time}
-                    onChange={(e) =>
-                      handleRoutineChange("time", e.target.value)
-                    }
-                    className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {timeOptions.map((time) => (
-                      <option key={time}>{time}</option>
-                    ))}
-                  </select>
-                </div>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              Product
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={step.productName || ""}
+                                readOnly
+                                onClick={() => {
+                                  setCurrentStepId(step.id);
+                                  setShowProductDialog(true);
+                                }}
+                                placeholder="Select your product"
+                                className="w-full rounded border border-gray-300 p-2 pr-10 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Duration (minutes)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={routineData.duration}
-                    onChange={(e) =>
-                      handleRoutineChange("duration", parseInt(e.target.value))
-                    }
-                    className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
+                              <button
+                                onClick={() => {
+                                  setCurrentStepId(step.id);
+                                  setShowProductDialog(true);
+                                }}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Routine Steps
-                </label>
-                <div className="space-y-3">
-                  {steps.map((step) => (
-                    <div key={step.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="font-medium">Step {step.id}</span>
-                        {steps.length > 1 && (
-                          <button
-                            onClick={() => handleDeleteStep(step.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm text-gray-600 mb-1">
-                            Product
-                          </label>
-                          <div className="relative">
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              Note (optional)
+                            </label>
                             <input
                               type="text"
-                              value={step.product}
+                              value={step.note}
                               onChange={(e) =>
-                                handleProductChange(step.id, e.target.value)
+                                handleNoteChange(step.id, e.target.value)
                               }
-                              placeholder="Select your product"
-                              className="w-full rounded border border-gray-300 p-2 pr-10 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                              onClick={() => {
-                                setCurrentStepId(step.id);
-                                setShowProductDialog(true);
-                              }}
+                              placeholder="e.g. 'Apply to damp skin'"
+                              className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             />
-                            <button
-                              onClick={() => {
-                                setCurrentStepId(step.id);
-                                setShowProductDialog(true);
-                              }}
-                              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
                           </div>
                         </div>
-
-                        <div>
-                          <label className="block text-sm text-gray-600 mb-1">
-                            Note (optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={step.note}
-                            onChange={(e) =>
-                              handleNoteChange(step.id, e.target.value)
-                            }
-                            placeholder="e.g. 'Apply to damp skin'"
-                            className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
 
+                    <button
+                      type="button"
+                      onClick={addStep}
+                      className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:text-blue-500 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Step
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
                   <button
-                    type="button"
-                    onClick={addStep}
-                    className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:text-blue-500 transition-colors"
+                    onClick={() => onOpenChange(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                   >
-                    <Plus className="w-4 h-4" />
-                    Add Step
+                    Cancel
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    onClick={handleSave}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Saving..." : "Save Routine"}
                   </button>
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  onClick={() => onOpenChange(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  onClick={handleSave}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Saving..." : "Save Routine"}
-                </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
+      )}
       <ProductListDialog
         open={showProductDialog}
         onClose={() => setShowProductDialog(false)}
-        onSelectProduct={handleProductSelect}
+        onSelectProduct={(product) => {
+          console.log("Selected product:", product); // <-- Add this console to verify!
+          handleProductSelect(product);
+        }}
       />
     </>
   );

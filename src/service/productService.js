@@ -75,6 +75,7 @@ const formatFaceProduct = (product) => ({
   usage: product.usage,
   createdAt: product.created_at || new Date().toISOString(),
 });
+export { formatFaceProduct };
 
 /**
  * Fetches products for a specific user (dummy implementation)
@@ -112,4 +113,22 @@ export const fetchRecentProducts = async (limit = 6) => {
     console.error("Error fetching recent products:", error);
     return [];
   }
+};
+
+// faceProductService.js
+
+// productService.js
+export const fetchUserSavedProducts = async (userId) => {
+  // Just return the first few products as "saved" for now
+  const { data, error } = await supabase
+    .from("face_products_view")
+    .select("*")
+    .limit(3); // simulate "saved" items
+
+  if (error) {
+    console.error("Supabase error:", error);
+    throw error;
+  }
+
+  return data.map(formatFaceProduct);
 };

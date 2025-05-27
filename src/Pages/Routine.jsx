@@ -1,20 +1,17 @@
-import { useState } from "react";
-import {
-  Plus,
-  ChevronDown,
-  Bell,
-  BellOff,
-  Edit2,
-  Trash2,
-  Check,
-  X,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, ChevronDown, Edit2, Trash2, X } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import RoutineDialog from "../components/Routine/Routinedialog";
+import { useAuth } from "../context/AuthProvider";
 import { products } from "../Pages/utils/Productdata";
+import { supabase } from "../lib/supabaseClient"; // example path
+
+import { fetchUserRoutines } from "../service/routineService"; // adjust path accordingly
 
 const RoutinesPage = () => {
+  const { currentUser: user } = useAuth();
+
   const [routines, setRoutines] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
   const [visibleSections, setVisibleSections] = useState({
@@ -38,6 +35,44 @@ const RoutinesPage = () => {
       [routineId]: !prev[routineId],
     }));
   };
+  useEffect(() => {
+    const loadRoutines = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.error("No user logged in");
+        return;
+      }
+
+      try {
+        const savedRoutines = await fetchUserRoutines(user.id);
+
+        const mappedRoutines = savedRoutines.map((r) => ({
+          id: r.routine_id,
+          name: r.routine_name,
+          type: r.type,
+          time: r.time,
+          duration: r.duration,
+          steps: r.steps.map((step) => ({
+            ...step,
+            stepNumber: step.step_number,
+            product: step.product_name,
+            note: step.note,
+            id: step.step_number,
+          })),
+          notificationEnabled: true,
+        }));
+
+        setRoutines(mappedRoutines);
+      } catch (err) {
+        console.error("Error loading routines:", err.message);
+      }
+    };
+
+    loadRoutines(); // <--- call it here
+  }, []);
 
   const handleSaveRoutine = async (newRoutine) => {
     try {
@@ -58,6 +93,12 @@ const RoutinesPage = () => {
     setDeleteConfirmation(null);
   };
 
+  console.log("Routines:", routines);
+  routines.forEach((routine) => {
+    console.log(routine.routine_name);
+    console.log(routine.steps); // array of steps
+  });
+
   const handleEditRoutine = (routine) => {
     // TODO: Implement edit functionality
     alert("Edit functionality will be implemented here");
@@ -65,7 +106,8 @@ const RoutinesPage = () => {
 
   const getProductDetails = (productName) => {
     const product = products.find((p) => p.name === productName);
-    if (!product) return { type: "Unknown", bodyPart: "Unknown" };
+    if (!product)
+      return { type: "Unknown", bodyPart: "Unknown", area: "unknown" };
 
     return {
       type: product.type,
@@ -93,7 +135,7 @@ const RoutinesPage = () => {
 
       {visibleSections[type.toLowerCase()] && (
         <div className="p-6">
-          {routines.filter((r) => r.type.toLowerCase() === type.toLowerCase())
+          {routines.filter((r) => r.type?.toLowerCase() === type.toLowerCase())
             .length === 0 ? (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
               <p className="text-gray-600 mb-4">No routine yet</p>
@@ -320,6 +362,15 @@ const RoutinesPage = () => {
           </div>
         </div>
       )}
+
+      {/* Floating Add Routine Button */}
+      <button
+        onClick={() => setShowDialog(true)}
+        className="fixed bottom-6 right-6 z-50 bg-cyan-800 text-white p-4 rounded-full shadow-lg hover:bg-cyan-700 transition-all"
+        title="Add Routine"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       <RoutineDialog
         open={showDialog}

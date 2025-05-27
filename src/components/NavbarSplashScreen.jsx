@@ -13,7 +13,7 @@ const NavbarSS = () => {
   const menuItems = [
     { title: "Home", path: "/home" },
     { title: "Dashboard", path: "/login" },
-    { title: "Contact", path: "/contact" },
+
     { title: "Download App", path: "/download" },
   ];
 

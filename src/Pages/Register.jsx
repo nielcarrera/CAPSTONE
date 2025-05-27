@@ -32,7 +32,7 @@ const Register = () => {
       status,
     } = await supabase
       .from("user")
-      .insert([{ id: userId, email }])
+      .insert([{ id: userId, email, first_time: true }])
       .select();
 
     console.log("Insert 'user' response:", { data, userError, status });
