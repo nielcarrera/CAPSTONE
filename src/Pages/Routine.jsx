@@ -359,7 +359,7 @@ const RoutinesPage = () => {
                 Delete
               </button>
             </div>
-          </div>
+          </div> 
         </div>
       )}
 

@@ -12,6 +12,7 @@ import {
   fetchUserDetails,
   fetchUserSkinType,
   fetchRecentProducts,
+  fetchMostRecentSavedImpurityResults,
 } from "../service/landingpageService"; // Use the new service functions
 import { supabase } from "../lib/supabaseClient";
 
@@ -37,20 +38,19 @@ const LandingPage = () => {
         const userDetails = await fetchUserDetails(user.id);
         const userSkinType = await fetchUserSkinType(user.id);
 
-        const mostRecentKey = Object.keys(ANALYSIS_DATA)[0];
-        const mostRecent = ANALYSIS_DATA[mostRecentKey];
         const bodyImpurities = getRecentBodyImpurities();
         const products = await fetchRecentProducts(6);
 
-        const skinScore = calculateSkinScore(mostRecent.analytics);
-        const topProblems = getTopProblems(mostRecent.analytics);
+        const mostRecent = await fetchMostRecentSavedImpurityResults(user.id);
+        const skinScore = calculateSkinScore(mostRecent);
+        const topProblems = getTopProblems(mostRecent);
 
         setUserData({
           ...mockUser,
           firstName: userDetails?.first_name || "User",
           skinScore,
           faceProblems: { keyProblems: topProblems },
-          analytics: mostRecent.analytics,
+          analytics: mostRecent,
           skinType: userSkinType || null,
         });
 
