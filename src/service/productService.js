@@ -60,22 +60,6 @@ export const getFaceProductById = async (productId) => {
 };
 
 // Helper function to format product data consistently
-const formatFaceProduct = (product) => ({
-  id: product.product_id,
-  type: product.product_type,
-  name: product.product_name,
-  description: product.description,
-  severity: product.severity,
-  area: product.area,
-  image: product.image,
-  ingredients: product.ingredients,
-  skinType: product.skintype,
-  impurity: product.impurity,
-  cautions: product.cautions,
-  usage: product.usage,
-  createdAt: product.created_at || new Date().toISOString(),
-});
-export { formatFaceProduct };
 
 /**
  * Fetches products for a specific user (dummy implementation)
@@ -118,6 +102,7 @@ export const fetchRecentProducts = async (limit = 6) => {
 // faceProductService.js
 
 // productService.js
+
 export const fetchUserSavedProducts = async (userId) => {
   // Just return the first few products as "saved" for now
   const { data, error } = await supabase
@@ -131,4 +116,64 @@ export const fetchUserSavedProducts = async (userId) => {
   }
 
   return data.map(formatFaceProduct);
+};
+/**
+ * Fetches all saved products for a given user, including joined product details.
+ * @param {string} userId
+ * @returns {Promise<Array<{ product_id: string, saved_at: string, products: object }>>}
+ */
+
+export const formatFaceProduct = (item) => {
+  const p = item.face_products_view || item.products || {};
+  return {
+    id: p.product_id || p.id || item.product_id || "",
+    type: (p.product_type || p.type || item.type || "").toLowerCase(),
+    name: p.product_name || p.name || item.name || "",
+    description: p.description || "",
+    severity: (p.severity || item.severity || "").toLowerCase(),
+    area: (p.area || item.area || "face").toLowerCase(),
+    image: p.image || item.image || "",
+    ingredients: Array.isArray(p.ingredients)
+      ? p.ingredients
+      : typeof p.ingredients === "string"
+      ? p.ingredients.split(",").map((i) => i.trim())
+      : [],
+    skinType: (p.skintype || p.skinType || item.skinType || "").toLowerCase(),
+    impurity: (p.impurity || item.impurity || "").toLowerCase(),
+    cautions: Array.isArray(p.cautions)
+      ? p.cautions
+      : p.cautions
+      ? [p.cautions]
+      : [],
+    usage: p.usage || item.usage || "",
+    brand: p.brand || item.brand || "",
+    createdAt:
+      p.created_at ||
+      item.created_at ||
+      item.saved_at ||
+      new Date().toISOString(),
+    saved_at: item.saved_at,
+    user_product_id: item.product_id,
+  };
+};
+
+// Main fetch function for saved products
+export const fetchSavedProducts = async (userId) => {
+  const { data, error } = await supabase
+    .from("user_saved_products")
+    .select(
+      `
+      product_id,
+      saved_at,
+      products:product_id (*),
+      face_products_view:product_id (*)
+    `
+    )
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  return (data || [])
+    .filter((item) => item.face_products_view || item.products)
+    .map(formatFaceProduct);
 };

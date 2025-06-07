@@ -1,17 +1,18 @@
-import { useState } from "react";
-import { ChevronDown, X, ArrowRight, Filter, Plus, Minus } from "lucide-react";
+// src/Pages/BodyImpurityDashboard.jsx
+
+import { useState, useEffect } from "react";
+import { Filter, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
-import {
-  BODY_ANALYSIS_DATA,
-  BODY_PARTS,
-  getColorByValue,
-} from "../Pages/utils/DummyData";
-import RecommendationModal_Body from "../components/BodyReccomendationModal";
+
+// Import the service
+import { fetchUserBodyImpurities } from "../service/bodyimpurityService";
+import { supabase } from "../lib/supabaseClient";
 
 const BodyImpurityDashboard = () => {
+  const [fetchedImpurities, setFetchedImpurities] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedBodyParts, setSelectedBodyParts] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -19,37 +20,77 @@ const BodyImpurityDashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentImpurity, setCurrentImpurity] = useState(null);
 
-  // Get all unique dates for filtering (sorted newest first)
+  useEffect(() => {
+    async function loadImpurities() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      const userId = user.id;
+
+      try {
+        setLoading(true);
+        const rows = await fetchUserBodyImpurities(userId);
+
+        // Discard any row where saved_body_impurity is null
+        const filtered = rows.filter((row) => row.saved_body_impurity !== null);
+
+        // Map remaining rows
+        const flat = filtered.map((row) => ({
+          id: row.id,
+          created_at: row.created_at,
+          detected_at: row.saved_body_impurity.detected_at,
+          name: row.saved_body_impurity.body_impurities.name,
+          description: row.saved_body_impurity.body_impurities.description,
+          common_locations:
+            row.saved_body_impurity.body_impurities.common_locations,
+          prevalence: row.saved_body_impurity.body_impurities.prevalence,
+          image: row.saved_body_impurity.body_impurities.image,
+        }));
+        setFetchedImpurities(flat);
+      } catch (error) {
+        console.error("Error fetching body impurities:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadImpurities();
+  }, []);
+
+  // Date filtering
   const allDates = [
-    ...new Set(
-      Object.values(BODY_ANALYSIS_DATA)
-        .flatMap((analysis) =>
-          (analysis.impurities || []).map((imp) => imp.dateFound)
-        )
-        .filter(Boolean)
-    ),
+    ...new Set(fetchedImpurities.map((imp) => imp.detected_at.split("T")[0])),
   ].sort((a, b) => new Date(b) - new Date(a));
 
-  const [selectedDate, setSelectedDate] = useState(""); // "" means all dates
-
-  // Get all impurities from all dates and flatten them into one array
-  const allImpurities = Object.values(BODY_ANALYSIS_DATA).flatMap(
-    (analysis) => analysis.impurities || []
-  );
-
-  // Filter by date if selected
+  const [selectedDate, setSelectedDate] = useState("");
   const dateFilteredImpurities = selectedDate
-    ? allImpurities.filter((imp) => imp.dateFound === selectedDate)
-    : allImpurities;
+    ? fetchedImpurities.filter(
+        (imp) => imp.detected_at.split("T")[0] === selectedDate
+      )
+    : fetchedImpurities;
 
-  // Sort by date (newest first)
+  const BODY_PARTS = [
+    "Arm",
+    "Back",
+    "Neck",
+    "Abdomen",
+    "Hands",
+    "Chest",
+    "Legs",
+    "Feet",
+  ];
+
   const sortedImpurities = [...dateFilteredImpurities].sort(
-    (a, b) => new Date(b.dateFound) - new Date(a.dateFound)
+    (a, b) => new Date(b.detected_at) - new Date(a.detected_at)
   );
 
   const processedImpurities = sortedImpurities.filter(
     (imp) =>
-      selectedBodyParts.length === 0 || selectedBodyParts.includes(imp.bodyPart)
+      selectedBodyParts.length === 0 ||
+      selectedBodyParts.includes(imp.common_locations)
   );
 
   const toggleBodyPart = (part) => {
@@ -57,7 +98,6 @@ const BodyImpurityDashboard = () => {
       prev.includes(part) ? prev.filter((p) => p !== part) : [...prev, part]
     );
   };
-
   const toggleAllBodyParts = () => {
     setSelectedBodyParts((prev) =>
       prev.length === BODY_PARTS.length ? [] : BODY_PARTS
@@ -68,18 +108,14 @@ const BodyImpurityDashboard = () => {
     setCurrentImpurity(impurity);
     setShowDetailsModal(true);
   };
-
-  const handleGenerateRecommendations = (impurity) => {
+  const handleGenerateRecommendations = () => {
     setIsGenerating(true);
     setShowRecommendationModal(true);
-
-    // Simulate API call or processing
     setTimeout(() => {
       setIsGenerating(false);
     }, 6000);
   };
 
-  // Format date for display
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -96,41 +132,39 @@ const BodyImpurityDashboard = () => {
       <Sidebar />
       <Navbar />
 
-      {/* Main Content Area */}
       <div className="mt-20 max-w-6xl mx-auto space-y-8 px-4">
-        {/* Detailed Body Analysis Section */}
-        <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <section className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+          {/* Header & Date Filter */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <h2 className="text-xl font-bold">Detailed Body Analysis</h2>
-            <div className="flex flex-col md:flex-row md:items-center gap-2">
-              {/* Date Filter */}
-              <div>
-                <select
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="border border-gray-300 rounded-md px-2 py-1 text-sm"
-                >
-                  <option value="">All Dates</option>
-                  {allDates.map((date) => (
-                    <option key={date} value={date}>
-                      {formatDate(date)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="text-sm text-gray-500">
+            <h2 className="text-xl font-bold text-gray-800">
+              Detailed Body Analysis
+            </h2>
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <select
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Dates</option>
+                {allDates.map((date) => (
+                  <option key={date} value={date}>
+                    {formatDate(date + "T00:00:00Z")}
+                  </option>
+                ))}
+              </select>
+              <div className="text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-md">
                 {processedImpurities.length}{" "}
                 {processedImpurities.length === 1 ? "item" : "items"} found
               </div>
             </div>
           </div>
 
-          {/* Filter Controls */}
+          {/* Filters */}
           <div className="mb-6">
             <div className="flex justify-between items-center">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors border border-gray-200"
               >
                 <Filter size={16} />
                 {showFilters ? "Hide Filters" : "Show Filters"}
@@ -142,84 +176,96 @@ const BodyImpurityDashboard = () => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-4 overflow-hidden"
+                transition={{ duration: 0.2 }}
+                className="mt-4 overflow-hidden p-4 bg-gray-50 rounded-lg border border-gray-200"
               >
-                <div className="space-y-6">
-                  {/* Body Part Filter */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-gray-700 ring-cyan-80">
-                        Body Part
-                      </h4>
-                      <button
-                        onClick={toggleAllBodyParts}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        {selectedBodyParts.length === BODY_PARTS.length
-                          ? "Deselect All"
-                          : "Select All"}
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                      {BODY_PARTS.map((part) => (
-                        <button
-                          key={part}
-                          onClick={() => toggleBodyPart(part)}
-                          className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                            selectedBodyParts.includes(part)
-                              ? "bg-blue-50 border-blue-200 text-blue-700 ring-cyan-800"
-                              : "border-gray-200 hover:bg-gray-50"
-                          }`}
-                        >
-                          {part}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="font-medium text-gray-700">Body Part</h4>
+                  <button
+                    onClick={toggleAllBodyParts}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    {selectedBodyParts.length === BODY_PARTS.length
+                      ? "Deselect All"
+                      : "Select All"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 gap-2">
+                  {BODY_PARTS.map((part) => (
+                    <button
+                      key={part}
+                      onClick={() => toggleBodyPart(part)}
+                      className={`px-3 py-2 text-sm rounded-md border transition-colors flex items-center justify-center ${
+                        selectedBodyParts.includes(part)
+                          ? "bg-blue-50 border-blue-200 text-blue-700"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedBodyParts.includes(part)}
+                        readOnly
+                        className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2"
+                      />
+                      {part}
+                    </button>
+                  ))}
                 </div>
               </motion.div>
             )}
           </div>
 
           {/* Impurity Cards */}
-          {processedImpurities.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+          {loading ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">Loading…</p>
+            </div>
+          ) : processedImpurities.length > 0 ? (
+            <div
+              className={`grid ${
+                processedImpurities.length <= 2
+                  ? "justify-center grid-cols-1 sm:grid-cols-2 gap-4"
+                  : "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+              }`}
+            >
               {processedImpurities.map((impurity) => (
-                <div
+                <motion.div
                   key={impurity.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full bg-white p-2 sm:p-3 md:p-4"
+                  whileHover={{
+                    y: -5,
+                    boxShadow: "0 10px 15px rgba(0,0,0,0.2)",
+                  }}
+                  className="border border-gray-200 rounded-lg overflow-hidden flex flex-col bg-white shadow-lg"
+                  style={{ maxWidth: "18rem" }} // about 10% bigger
                 >
-                  <div className="aspect-[4/3] bg-gray-100 overflow-hidden rounded-md">
+                  <div className="aspect-[4/3] bg-gray-100 overflow-hidden">
                     <img
                       src={impurity.image}
-                      alt={impurity.label}
+                      alt={impurity.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="flex flex-col flex-grow mt-2">
-                    <h3 className="font-semibold text-xs sm:text-sm md:text-base text-gray-800">
-                      {impurity.label}
+                  <div className="flex flex-col flex-grow p-4">
+                    <h3 className="font-semibold text-base text-gray-800 mb-1">
+                      {impurity.name}
                     </h3>
-                    <span className="text-xs sm:text-sm text-gray-500 mt-1 mb-1 block">
-                      {impurity.bodyPart}
+                    <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full mb-2">
+                      {impurity.common_locations}
                     </span>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-2 flex-grow line-clamp-2">
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                       {impurity.description}
                     </p>
-                    {/* Detection Date */}
-                    <div className="text-[11px] sm:text-xs text-gray-400 mb-2">
-                      Detected: {formatDate(impurity.dateFound)}
+                    <div className="text-[11px] text-gray-400 mb-3">
+                      Detected: {formatDate(impurity.detected_at)}
                     </div>
-                    <div className="flex gap-2 mt-auto">
-                      <button
-                        onClick={() => openDetailsModal(impurity)}
-                        className="flex-1 text-center rounded-md text-xs sm:text-sm px-2 py-2 bg-gray-800 text-white hover:bg-gray-700 transition-colors"
-                      >
-                        View more details
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => openDetailsModal(impurity)}
+                      className="mt-auto w-full text-center text-sm px-3 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+                    >
+                      View Details
+                    </button>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -252,7 +298,7 @@ const BodyImpurityDashboard = () => {
             >
               <div className="bg-white border-1 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white p-4 border-b border-gray-200 flex justify-between items-center">
-                  <h3 className="text-xl font-bold">{currentImpurity.label}</h3>
+                  <h3 className="text-xl font-bold">{currentImpurity.name}</h3>
                   <button
                     onClick={() => setShowDetailsModal(false)}
                     className="p-1 rounded-full hover:bg-gray-100"
@@ -264,20 +310,16 @@ const BodyImpurityDashboard = () => {
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex flex-col">
-                      <img
-                        src={currentImpurity.image}
-                        alt={currentImpurity.label}
-                        className="w-full h-full object-cover mb-4"
-                      />
-                      <div className="mt-4">
-                        <button
-                          onClick={() => setShowRecommendationModal(true)}
-                          className="block w-full text-center rounded-md px-4 py-2 bg-cyan-800 text-white hover:bg-cyan-700 transition-colors"
-                          type="button"
-                        >
-                          Get Product Recommendations
-                        </button>
+                      {/* After (modal now shows the actual image): */}
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex flex-col">
+                        <img
+                          src={currentImpurity.image}
+                          alt={currentImpurity.name}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
+
+                      <div className="mt-4"></div>
                     </div>
 
                     <div>
@@ -287,16 +329,16 @@ const BodyImpurityDashboard = () => {
                             Detection Date:
                           </h4>
                           <p className="text-gray-600">
-                            {formatDate(currentImpurity.dateFound)}
+                            {formatDate(currentImpurity.detected_at)}
                           </p>
                         </div>
 
                         <div>
                           <h4 className="font-medium text-gray-800">
-                            Body Part:
+                            Body Part (Location):
                           </h4>
                           <p className="text-gray-600">
-                            {currentImpurity.bodyPart}
+                            {currentImpurity.common_locations}
                           </p>
                         </div>
 
@@ -311,24 +353,11 @@ const BodyImpurityDashboard = () => {
 
                         <div>
                           <h4 className="font-medium text-gray-800">
-                            Causes and Triggers:
+                            Prevalence:
                           </h4>
-                          <ul className="list-disc list-inside text-gray-600 space-y-1">
-                            {currentImpurity.causes.map((cause, i) => (
-                              <li key={i}>{cause}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium text-gray-800">
-                            Cautions:
-                          </h4>
-                          <ul className="list-disc list-inside text-gray-600 space-y-1">
-                            {currentImpurity.cautions.map((caution, i) => (
-                              <li key={i}>{caution}</li>
-                            ))}
-                          </ul>
+                          <p className="text-gray-600">
+                            {currentImpurity.prevalence}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -339,15 +368,6 @@ const BodyImpurityDashboard = () => {
           </>
         )}
       </AnimatePresence>
-
-      {/* Recommendation Modal */}
-      <RecommendationModal_Body
-        showDialog={showRecommendationModal}
-        setShowDialog={setShowRecommendationModal}
-        impurity={currentImpurity}
-        onGenerate={handleGenerateRecommendations}
-        isGenerating={isGenerating}
-      />
     </div>
   );
 };

@@ -22,7 +22,7 @@ import BodyImpurityDashboard from "./Pages/BodyImpurityDashboard";
 import ReccomendedProductsDialog from "./components/ReccomendedProductsDialog";
 
 const router = createBrowserRouter([
-  { path: "/", element: <Home></Home> },
+  { path: "/", element: <Login></Login> },
   { path: "home/", element: <Home></Home> },
   { path: "/lp", element: <LandingPage></LandingPage> },
   { path: "/Login", element: <Login></Login> },

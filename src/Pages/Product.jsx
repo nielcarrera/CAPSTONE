@@ -1,37 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthProvider";
-import { fetchFaceProducts } from "../service/productService";
+import {
+  fetchSavedProducts,
+  formatFaceProduct,
+} from "../service/productService"; // <-- import both here!
 import { supabase } from "../lib/supabaseClient";
 import { ProductCard } from "../components/Products/ProductCards";
 import { ProductFilters } from "../components/Products/ProductFilters";
 import ProductDetailModal from "../components/Products/ProductDetailModal";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-
-const formatFaceProduct = (product) => ({
-  id: product.id,
-  type: product.type?.toLowerCase(),
-  name: product.name,
-  description: product.description,
-  severity: product.severity?.toLowerCase(),
-  area: product.area?.toLowerCase() || "face",
-  image: product.image,
-  ingredients: Array.isArray(product.ingredients)
-    ? product.ingredients
-    : typeof product.ingredients === "string"
-    ? product.ingredients.split(",").map((i) => i.trim())
-    : [],
-  skinType: product.skinType?.toLowerCase(),
-  impurity: product.impurity?.toLowerCase(),
-  cautions: Array.isArray(product.cautions)
-    ? product.cautions
-    : product.cautions
-    ? [product.cautions]
-    : [],
-  usage: product.usage || "",
-  brand: product.brand || "",
-  createdAt: product.created_at || new Date().toISOString(),
-});
 
 export const Products = () => {
   const { currentUser } = useAuth();
@@ -57,8 +35,13 @@ export const Products = () => {
       try {
         setLoading(true);
         setError(null);
-        const faceProducts = await fetchFaceProducts();
-        if (isMounted) setProducts(faceProducts.map(formatFaceProduct));
+        if (!currentUser) {
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
+        const saved = await fetchSavedProducts(currentUser.id);
+        if (isMounted) setProducts(saved); // The products are already formatted!
       } catch (err) {
         if (isMounted) setError("Failed to load products. Please try again.");
       } finally {

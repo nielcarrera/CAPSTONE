@@ -18,7 +18,17 @@ const productTypes = [
   "treatment",
 ];
 const severityTypes = ["all", "mild", "moderate", "severe"];
-const bodyParts = ["all", "arm", "back", "neck", "legs", "feet"];
+const bodyParts = [
+  "all",
+  "arm",
+  "back",
+  "neck",
+  "legs",
+  "feet",
+  "back",
+  "abdomen",
+  "hands",
+];
 const dateRanges = [
   { value: "all", label: "All Dates" },
   { value: "week", label: "Last Week" },

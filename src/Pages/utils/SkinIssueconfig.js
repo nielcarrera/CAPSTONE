@@ -3,9 +3,9 @@ import blackheads from "../../assets/blackheads.jpg";
 import whiteheads from "../../assets/whiteheads.jpg";
 import acne from "../../assets/acne.jpg";
 import pores from "../../assets/pores.webp";
-import oil from "../../assets/oily.webp";
+
 import redness from "../../assets/redness.webp";
-import freckles from "../../assets/freckles.jpg";
+
 import wrinkles from "../../assets/wrinkles.jpg";
 import darkcircles from "../../assets/darkcircles.jpg";
 
@@ -19,20 +19,12 @@ export const skinIssues = {
     image: pores,
     description: "Enlarged pores that can become clogged and more visible.",
   },
-  Oil: {
-    image: oil,
-    description:
-      "Excess sebum production leading to shiny skin and potential breakouts.",
-  },
+
   Redness: {
     image: redness,
     description: "Irritated or inflamed areas of skin causing visible redness.",
   },
-  Freckles: {
-    image: freckles,
-    description:
-      "Small, concentrated spots of melanin often triggered by sun exposure.",
-  },
+
   Acne: {
     image: acne,
     description: "Inflammatory skin condition causing pimples and blemishes.",
@@ -70,11 +62,7 @@ export const skinIssueDetails = {
     prevention:
       "Avoid harsh products and hot water, use calming skincare, wear sunscreen.",
   },
-  Freckles: {
-    cause: "UV exposure triggering melanin overproduction.",
-    prevention:
-      "Daily broad-spectrum SPF, limit sun exposure, wear hats/sunglasses.",
-  },
+
   Acne: {
     cause:
       "Blocked hair follicles due to oil, bacteria, and hormonal imbalance.",
@@ -91,12 +79,7 @@ export const skinIssueDetails = {
     prevention:
       "Daily sunscreen, antioxidant-rich skincare, stay hydrated, avoid smoking.",
   },
-  Oil: {
-    cause:
-      "Overactive sebaceous glands often due to genetics or hormonal changes.",
-    prevention:
-      "Use oil-free products, blotting papers, and clay masks to control shine.",
-  },
+
   "Dark Circles": {
     cause: "Thinning skin under eyes, lack of sleep, or genetics.",
     prevention:

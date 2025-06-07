@@ -1,5 +1,9 @@
 // src/data/skinTypesData.js
 import combi from "../../assets/combi.webp";
+import normal from "../../assets/normal.jpg";
+import dry from "../../assets/dry.jpg";
+import oily from "../../assets/oily.jpg";
+import sensitive from "../../assets/sensitive.webp";
 
 export const skinTypes = [
   {
@@ -27,9 +31,7 @@ export const skinTypes = [
     type: "Oily",
     description:
       "Oily skin produces excess sebum, leading to a shiny appearance, enlarged pores, and a tendency toward acne and blackheads. This skin type benefits from oil-control products and regular cleansing.",
-    imageUrl: [
-      /* path to oily skin image */
-    ],
+    imageUrl: [oily],
     characteristics: [
       "Shiny, greasy appearance",
       "Enlarged pores",
@@ -53,9 +55,7 @@ export const skinTypes = [
     type: "Dry",
     description:
       "Dry skin lacks sufficient natural oils, often feeling tight and rough. It may show more visible lines and can be prone to flaking, redness, and irritation. Requires rich moisturizers and gentle care.",
-    imageUrl: [
-      /* path to dry skin image */
-    ],
+    imageUrl: [dry],
     characteristics: [
       "Tight feeling, especially after cleansing",
       "Rough texture",
@@ -80,9 +80,7 @@ export const skinTypes = [
     type: "Normal",
     description:
       "Normal skin is well-balanced, not too oily nor too dry. It has a smooth texture, small pores, and few imperfections. This skin type requires maintenance of its natural balance with gentle products.",
-    imageUrl: [
-      /* path to normal skin image */
-    ],
+    imageUrl: [normal],
     characteristics: [
       "Neither too oily nor too dry",
       "Small, barely visible pores",
@@ -105,9 +103,7 @@ export const skinTypes = [
     type: "Sensitive",
     description:
       "Sensitive skin reacts easily to products, environmental factors, or stress, often with redness, itching, or burning. Requires hypoallergenic, fragrance-free products and gentle care.",
-    imageUrl: [
-      /* path to sensitive skin image */
-    ],
+    imageUrl: [sensitive],
     characteristics: [
       "Easily irritated",
       "Frequent redness",

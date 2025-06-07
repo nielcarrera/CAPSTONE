@@ -12,23 +12,27 @@ import {
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
+
+import { loadAnalysisData } from "../service/analysisDataService";
+
+import { useAuth } from "../context/AuthProvider";
+
 import {
   ANALYSIS_DATA,
   SEVERITY_COLORS,
   getColorByValue,
 } from "../Pages/utils/DummyData";
-import { skinIssues } from "../Pages/utils/SkinIssueconfig";
+import { skinIssues, skinIssueDetails } from "../Pages/utils/SkinIssueconfig";
 import {
   computeSkinScore,
   enrichImpurities,
 } from "../Pages/utils/SkinAnalytics";
-import { skinIssueDetails } from "../Pages/utils/SkinIssueconfig";
 
 const Dashboard = () => {
   // Main state
-  const [selectedDate, setSelectedDate] = useState(
-    Object.keys(ANALYSIS_DATA)[0]
-  );
+  const [analysisData, setAnalysisData] = useState({});
+  const [selectedDate, setSelectedDate] = useState(null);
+
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedImpurity, setSelectedImpurity] = useState(null);
@@ -39,7 +43,13 @@ const Dashboard = () => {
   const [showTour, setShowTour] = useState(false);
 
   // Data processing
-  const currentData = ANALYSIS_DATA[selectedDate];
+
+  const { currentUser } = useAuth();
+  const currentData = analysisData[selectedDate] || {
+    impurities: [],
+    radarData: [],
+    analytics: [],
+  };
   const enrichedImpurities = enrichImpurities(
     currentData.impurities,
     skinIssues
@@ -125,6 +135,20 @@ const Dashboard = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!currentUser) return;
+    // Fetch analysis data from Supabase
+    loadAnalysisData(currentUser.id).then((data) => {
+      setAnalysisData(data);
+      // 📅 get all dates and sort newest-first
+      const dates = Object.keys(data).sort((a, b) => b.localeCompare(a));
+
+      // 🚩 log to verify with landingPageService
+      console.log("🚩 dashboard dates:", dates, "→ picking", dates[0]);
+      if (dates.length > 0) setSelectedDate(dates[0]); // Set most recent as default
+    });
+  }, [currentUser]);
+
   const handleShareScore = () => alert(`Sharing skin score: ${skinScore}`);
 
   const toggleDetails = (label) => {
@@ -179,28 +203,36 @@ const Dashboard = () => {
               : ""
           }`}
         >
-          <button
-            onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 w-full justify-between"
-          >
-            <span>{selectedDate}</span>
-            <ChevronDown
-              size={20}
-              className={`transition-transform ${
-                isDateDropdownOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+          {selectedDate ? (
+            // Only render the dropdown button if we actually have a date
+            <button
+              onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+              className="flex items-center gap-2 px-4 py-2 w-full justify-between"
+            >
+              <span>{selectedDate}</span>
+              <ChevronDown
+                size={20}
+                className={`transition-transform ${
+                  isDateDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+          ) : (
+            // Otherwise show a placeholder until loadAnalysisData finishes
+            <div className="px-4 py-2 text-gray-500 italic">
+              No analysis data yet
+            </div>
+          )}
 
           <AnimatePresence>
-            {isDateDropdownOpen && (
+            {isDateDropdownOpen && selectedDate && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg z-10 border border-gray-200"
               >
-                {Object.keys(ANALYSIS_DATA).map((date) => (
+                {Object.keys(analysisData).map((date) => (
                   <button
                     key={date}
                     onClick={() => {
@@ -498,6 +530,47 @@ const Dashboard = () => {
             ))}
           </div>
         </section>
+
+        {/* ── TEST INSERT SECTION (unstyled) ──────────────────────────────────────────── */}
+        {/* 
+        <div className="p-4 bg-white border rounded-md mb-4">
+          <button
+            onClick={async () => {
+              console.log("👉 Insert button was clicked");
+              if (!currentUser) {
+                console.warn("No currentUser; cannot insert.");
+                return;
+              }
+              try {
+                console.log("…calling insertFaceAnalysis");
+                const result = await insertFaceAnalysis(
+                  currentUser.id,
+                  "2025-06-08",
+                  [{ impurity: "Blackheads", percentage: 0.8 }]
+                );
+                console.log("✅ insertFaceAnalysis succeeded:", result);
+
+                // Re-fetch everything so the UI reflects the new row
+                const newData = await loadAnalysisData(currentUser.id);
+                console.log("🚀 New loadAnalysisData result:", newData);
+                setAnalysisData(newData);
+
+                const newDates = Object.keys(newData);
+                if (newDates.length > 0) setSelectedDate(newDates[0]);
+              } catch (err) {
+                console.error("❌ insertFaceAnalysis error:", err);
+              }
+            }}
+            className="px-3 py-2 bg-red-200 text-red-800 rounded"
+          >
+            📌 Insert Test Face Data
+          </button>
+          <p className="mt-2 text-sm text-gray-600">
+            Click to insert one dummy face‐impurity (Acne, 50%) on 2025-06-08,
+            then re-load.
+          </p>
+        </div>
+        {/* ──────────────────────────────────────────────────────────────────────────── */}
 
         {/* View Recommendations Button */}
         <div className="flex justify-center pb-8">

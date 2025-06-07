@@ -41,7 +41,6 @@ export const ANALYSIS_DATA = {
       { subject: "Blackheads", A: 50 },
       { subject: "Dark Circles", A: 45 },
       { subject: "Acne", A: 35 },
-      { subject: "Freckles", A: 35 },
     ],
     analytics: [
       { label: "Whiteheads", value: 80 },
@@ -50,13 +49,12 @@ export const ANALYSIS_DATA = {
       { label: "Wrinkles", value: 30 },
       { label: "Blackheads", value: 35 },
       { label: "Acne", value: 40 },
-      { label: "Freckles", value: 45 },
     ],
     impurities: [
       { label: "Whiteheads", value: 80 },
       { label: "Pores", value: 65 },
       { label: "Redness", value: 50 },
-      { label: "Freckles", value: 45 },
+
       { label: "Acne", value: 40 },
       { label: "Blackheads", value: 35 },
       { label: "Wrinkles", value: 30 },
@@ -75,7 +73,6 @@ export const ANALYSIS_DATA = {
       { subject: "Blackheads", A: 75 },
       { subject: "Dark Circles", A: 35 },
       { subject: "Acne", A: 40 },
-      { subject: "Freckles", A: 40 },
     ],
     analytics: [
       { label: "Whiteheads", value: 40 },
@@ -85,14 +82,13 @@ export const ANALYSIS_DATA = {
       { label: "Blackheads", value: 40 },
       { label: "Dark Circles", value: 30 },
       { label: "Acne", value: 60 },
-      { label: "Freckles", value: 35 },
     ],
     impurities: [
       { label: "Blackheads", value: 75 },
       { label: "Acne", value: 60 },
       { label: "Pores", value: 55 },
       { label: "Whiteheads", value: 40 },
-      { label: "Freckles", value: 35 },
+
       { label: "Dark Circles", value: 30 },
       { label: "Wrinkles", value: 25 },
     ],
@@ -100,72 +96,8 @@ export const ANALYSIS_DATA = {
 };
 
 export const BODY_ANALYSIS_DATA = {
-  "May 15, 2023": {
-    impurities: [
-      {
-        id: "1",
-        label: "Keratosis Pilaris",
-        value: 65,
-        bodyPart: "Arms",
-        image: "https://example.com/keratosis-pilaris.jpg",
-        description: "Small, rough bumps on the skin",
-        causes: ["Excess keratin production"],
-        triggers: ["Cold weather"],
-        cautions: ["Avoid harsh scrubbing"],
-        dateFound: "2024-05-15T10:30:00",
-      },
-      {
-        id: "2",
-        label: "Athlete's Foot",
-        value: 45,
-        bodyPart: "Feet",
-        image: "https://example.com/athletes-foot.jpg",
-        description: "Fungal infection causing itching",
-        causes: ["Fungal infection"],
-        triggers: ["Public showers"],
-        cautions: ["Keep feet dry"],
-        dateFound: "2024-05-14T14:15:00",
-      },
-      {
-        id: "3",
-        label: "Eczema",
-        value: 55,
-        bodyPart: "Hands",
-        image: "https://example.com/eczema.jpg",
-        description: "Inflammatory condition",
-        causes: ["Genetic factors"],
-        triggers: ["Irritants"],
-        cautions: ["Moisturize regularly"],
-        dateFound: "2024-05-12T09:45:00",
-      },
-      {
-        id: "4",
-        label: "Acne Mechanica",
-        value: 40,
-        bodyPart: "Back",
-        image: "https://example.com/acne-mechanica.jpg",
-        description: "Acne caused by friction",
-        causes: ["Friction from clothing"],
-        triggers: ["Sports equipment"],
-        cautions: ["Wear breathable fabrics"],
-        dateFound: "2024-05-10T16:20:00",
-      },
-    ],
-  },
+  "May 15, 2023": {},
 };
-
-export const BODY_PARTS = [
-  "Scalp",
-  "Neck",
-  "Shoulders",
-  "Arms",
-  "Hands",
-  "Chest and Upper Back",
-  "Lower Back and Abdomen",
-  "Thighs",
-  "Legs",
-  "Feet",
-];
 
 export const SEVERITY_COLORS = {
   severe: "bg-red-500",

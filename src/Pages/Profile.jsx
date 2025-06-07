@@ -9,7 +9,7 @@ import { mockUser, mockRoutines } from "../Pages/utils/DummyData";
 
 import { supabase } from "../lib/supabaseClient"; // adjust path as needed
 import { fetchUserSkinType } from "../service/skintypeService";
-import { fetchUserSavedProducts } from "../service/productService"; // import it
+import { fetchUserSavedProducts } from "../service/productService";
 
 const Profile = () => {
   const navigate = useNavigate();
