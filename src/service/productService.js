@@ -11,8 +11,8 @@ export const fetchFaceProducts = async () => {
     // First try to fetch from Supabase
     const { data, error } = await supabase
       .from("face_products_view")
-      .select("*");
-
+      .select();
+    console.log("Supabase data:", data);
     if (error) throw error;
 
     if (data && data.length > 0) {
@@ -124,38 +124,41 @@ export const fetchUserSavedProducts = async (userId) => {
  */
 
 export const formatFaceProduct = (item) => {
-  const p = item.face_products_view || item.products || {};
+  // Accepts either direct product or nested product data
+  const p = item.face_products_view || item.products || item || {};
+
+  // Helper to always return an array for fields that may be string/array/undefined
+  const asArray = (field) => {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    if (typeof field === "string") return field.split(",").map((v) => v.trim()).filter(Boolean);
+    return [];
+  };
+
   return {
-    id: p.product_id || p.id || item.product_id || "",
-    type: (p.product_type || p.type || item.type || "").toLowerCase(),
-    name: p.product_name || p.name || item.name || "",
+    id: p.product_id || p.id || "",
+    type: (p.product_type || p.type || "").toString().toLowerCase(),
+    name: p.product_name || p.name || "",
     description: p.description || "",
-    severity: (p.severity || item.severity || "").toLowerCase(),
-    area: (p.area || item.area || "face").toLowerCase(),
-    image: p.image || item.image || "",
-    ingredients: Array.isArray(p.ingredients)
-      ? p.ingredients
-      : typeof p.ingredients === "string"
-      ? p.ingredients.split(",").map((i) => i.trim())
-      : [],
-    skinType: (p.skintype || p.skinType || item.skinType || "").toLowerCase(),
-    impurity: (p.impurity || item.impurity || "").toLowerCase(),
-    cautions: Array.isArray(p.cautions)
-      ? p.cautions
-      : p.cautions
-      ? [p.cautions]
-      : [],
-    usage: p.usage || item.usage || "",
-    brand: p.brand || item.brand || "",
+    severity: (p.severity || "").toString().toLowerCase(),
+    area: (p.area || "face").toString().toLowerCase(),
+    image: p.image || "",
+    ingredients: asArray(p.ingredients),
+    skinType: (p.skintype || p.skinType || "").toString().toLowerCase(),
+    impurity: (p.impurity || "").toString().toLowerCase(),
+    cautions: asArray(p.cautions),
+    usage: p.usage || "",
+    brand: p.brand || "",
     createdAt:
       p.created_at ||
       item.created_at ||
       item.saved_at ||
       new Date().toISOString(),
-    saved_at: item.saved_at,
-    user_product_id: item.product_id,
+    saved_at: item.saved_at || "",
+    user_product_id: p.product_id || "",
   };
 };
+
 
 // Main fetch function for saved products
 export const fetchSavedProducts = async (userId) => {

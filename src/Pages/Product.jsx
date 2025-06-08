@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthProvider";
 import {
+  fetchFaceProducts,
   fetchSavedProducts,
   formatFaceProduct,
 } from "../service/productService"; // <-- import both here!
@@ -40,7 +41,7 @@ export const Products = () => {
           setLoading(false);
           return;
         }
-        const saved = await fetchSavedProducts(currentUser.id);
+        const saved = await fetchFaceProducts();
         if (isMounted) setProducts(saved); // The products are already formatted!
       } catch (err) {
         if (isMounted) setError("Failed to load products. Please try again.");
