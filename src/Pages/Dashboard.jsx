@@ -155,6 +155,19 @@ const Dashboard = () => {
     }
   };
 
+  function formatDateFormal(dateString) {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    return d.toLocaleString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 ml-0 md:ml-[240px] relative">
       <Sidebar />
@@ -205,7 +218,8 @@ const Dashboard = () => {
               onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
               className="flex items-center gap-2 px-4 py-2 w-full justify-between"
             >
-              <span>{selectedDate}</span>
+              <span>{formatDateFormal(selectedDate)}</span>
+
               <ChevronDown
                 size={20}
                 className={`transition-transform ${
@@ -239,7 +253,7 @@ const Dashboard = () => {
                       date === selectedDate ? "text-violet-600 font-medium" : ""
                     }`}
                   >
-                    {date}
+                    {formatDateFormal(date)}
                   </button>
                 ))}
               </motion.div>

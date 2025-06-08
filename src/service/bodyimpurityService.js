@@ -5,29 +5,36 @@ import { supabase } from "../lib/supabaseClient";
 /**
  * Fetch all saved body impurities for a given user.
  */
-export async function fetchUserBodyImpurities(userId) {
+const fetchSavedImpurities = async (userId) => {
+  const kind = "body";
   const { data, error } = await supabase
     .from("saved_impurity")
     .select(
       `
       id,
-      created_at,
+      user_id,
+      kind,
       saved_body_impurity (
+        id,
+        body_impurity_id,
         detected_at,
         body_impurities (
           id,
           name,
-          description,
-          common_locations,
-          prevalence,
-           image
+          description
         )
       )
     `
     )
     .eq("user_id", userId)
-    .eq("kind", "body");
+    .eq("kind", kind)
+    .order("detected_at", {
+      referencedTable: "saved_body_impurity",
+      ascending: false,
+    });
 
   if (error) throw error;
   return data;
-}
+};
+
+export { fetchSavedImpurities };

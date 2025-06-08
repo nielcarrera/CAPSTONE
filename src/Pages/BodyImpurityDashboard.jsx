@@ -7,8 +7,9 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 
 // Import the service
-import { fetchUserBodyImpurities } from "../service/bodyimpurityService";
+import { fetchSavedImpurities } from "../service/bodyimpurityService";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../context/AuthProvider";
 
 const BodyImpurityDashboard = () => {
   const [fetchedImpurities, setFetchedImpurities] = useState([]);
@@ -19,7 +20,8 @@ const BodyImpurityDashboard = () => {
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentImpurity, setCurrentImpurity] = useState(null);
-
+  const currentUser = useAuth();
+  const id = currentUser.id;
   useEffect(() => {
     async function loadImpurities() {
       const {
@@ -33,23 +35,25 @@ const BodyImpurityDashboard = () => {
 
       try {
         setLoading(true);
-        const rows = await fetchUserBodyImpurities(userId);
+        const rows = await fetchSavedImpurities(userId);
 
-        // Discard any row where saved_body_impurity is null
-        const filtered = rows.filter((row) => row.saved_body_impurity !== null);
+        // FLATTEN all saved_body_impurity arrays into a single array
+        const flat = rows.flatMap((row) =>
+          (row.saved_body_impurity || []).map((sbi) => ({
+            id: sbi.id,
+            detected_at: sbi.detected_at,
+            name: sbi.body_impurities?.name || "",
+            description: sbi.body_impurities?.description || "",
+            common_locations: sbi.body_impurities?.common_locations || "",
+            prevalence: sbi.body_impurities?.prevalence || "",
+            image: sbi.body_impurities?.image || "",
+            // Optionally include parent (row) info if needed:
+            parent_id: row.id,
+            user_id: row.user_id,
+            kind: row.kind,
+          }))
+        );
 
-        // Map remaining rows
-        const flat = filtered.map((row) => ({
-          id: row.id,
-          created_at: row.created_at,
-          detected_at: row.saved_body_impurity.detected_at,
-          name: row.saved_body_impurity.body_impurities.name,
-          description: row.saved_body_impurity.body_impurities.description,
-          common_locations:
-            row.saved_body_impurity.body_impurities.common_locations,
-          prevalence: row.saved_body_impurity.body_impurities.prevalence,
-          image: row.saved_body_impurity.body_impurities.image,
-        }));
         setFetchedImpurities(flat);
       } catch (error) {
         console.error("Error fetching body impurities:", error);
