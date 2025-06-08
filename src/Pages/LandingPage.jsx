@@ -14,7 +14,6 @@ import {
   fetchRecentFaceKeyProblems,
   fetchRecentFaceAnalytics,
   fetchRecentBodyKeyProblems,
-  fetchRecentBodySkinScore,
   fetchRecentBodyImpurities,
 } from "../service/landingpageService";
 
@@ -83,7 +82,6 @@ const LandingPage = () => {
         // 4) Body keyProblems + score
         const [bodyKeyProblems, bodyScore] = await Promise.all([
           fetchRecentBodyKeyProblems(userId),
-          fetchRecentBodySkinScore(userId),
         ]);
 
         // 5) Body‐impurity cards

@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthProvider";
-import {
-  fetchFaceProducts,
-  fetchSavedProducts,
-  formatFaceProduct,
-} from "../service/productService"; // <-- import both here!
 import { supabase } from "../lib/supabaseClient";
 import { ProductCard } from "../components/Products/ProductCards";
 import { ProductFilters } from "../components/Products/ProductFilters";
 import ProductDetailModal from "../components/Products/ProductDetailModal";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import {
+  fetchFaceProducts,
+  fetchUserSavedProductIds,
+} from "../service/productService"; // Adjust if you split service files
+import { fetchBodyProducts } from "../service/bodyProductService";
 
 export const Products = () => {
   const { currentUser } = useAuth();
+  const userId = currentUser?.id;
   const [filters, setFilters] = useState({
     severity: "all",
     type: "all",
@@ -21,89 +22,67 @@ export const Products = () => {
     skinType: "all",
     sortOrder: "name-asc",
     dateRange: "all",
-    area: "face",
+    area: "face", // or "body"
     bodyPart: "all",
   });
-  const [products, setProducts] = useState([]);
+  const [faceProducts, setFaceProducts] = useState([]);
+  const [bodyProducts, setBodyProducts] = useState([]);
+  const [savedProductIds, setSavedProductIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+  // Fetch all face and body products at mount
   useEffect(() => {
-    let isMounted = true;
-    const loadProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        if (!currentUser) {
-          setProducts([]);
-          setLoading(false);
-          return;
-        }
-        const saved = await fetchFaceProducts();
-        if (isMounted) setProducts(saved); // The products are already formatted!
-      } catch (err) {
-        if (isMounted) setError("Failed to load products. Please try again.");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    loadProducts();
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (!supabase) return;
-    const subscription = supabase
-      .channel("face-products-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "face_products_view" },
-        (payload) => {
-          if (payload.eventType === "INSERT")
-            setProducts((prev) => [...prev, formatFaceProduct(payload.new)]);
-          else if (payload.eventType === "UPDATE")
-            setProducts((prev) =>
-              prev.map((p) =>
-                p.id === payload.new.product_id
-                  ? formatFaceProduct(payload.new)
-                  : p
-              )
-            );
-          else if (payload.eventType === "DELETE")
-            setProducts((prev) =>
-              prev.filter((p) => p.id !== payload.old.product_id)
-            );
-        }
-      )
-      .subscribe();
-    return () => supabase.removeChannel(subscription);
+    setLoading(true);
+    Promise.all([fetchFaceProducts(), fetchBodyProducts()])
+      .then(([faces, bodies]) => {
+        setFaceProducts(faces || []);
+        setBodyProducts(bodies || []);
+      })
+      .catch((err) => setError(err?.message || "Failed to load products"))
+      .finally(() => setLoading(false));
   }, []);
 
-  const filteredProducts = useMemo(() => {
-    if (loading) return [];
-    let result = [...products];
+  // Fetch saved product IDs for current user and area (face/body)
+  useEffect(() => {
+    if (!userId) {
+      setSavedProductIds([]);
+      return;
+    }
+    setLoading(true);
+    fetchUserSavedProductIds(userId)
+      .then((ids) => setSavedProductIds(ids || []))
+      .catch(() => setSavedProductIds([]))
+      .finally(() => setLoading(false));
+  }, [userId, filters.area]);
 
-    // Filter by area
-    result = result.filter((p) => p.area === filters.area);
-    if (filters.area === "face") {
-      if (filters.severity !== "all")
-        result = result.filter((p) => p.severity === filters.severity);
-      if (filters.type !== "all")
-        result = result.filter((p) => p.type === filters.type);
-      if (filters.impurity !== "all")
-        result = result.filter((p) => p.impurity === filters.impurity);
-      if (filters.skinType !== "all")
-        result = result.filter((p) => p.skinType === filters.skinType);
-    } else if (filters.bodyPart !== "all") {
+  // Only show full product details for the user's saved product ids
+  const allProducts = useMemo(
+    () => (filters.area === "face" ? faceProducts : bodyProducts),
+    [filters.area, faceProducts, bodyProducts]
+  );
+
+  const savedProducts = useMemo(() => {
+    return allProducts.filter((prod) => savedProductIds.includes(prod.id));
+  }, [allProducts, savedProductIds]);
+
+  // Apply filters
+  const filteredProducts = useMemo(() => {
+    let result = [...savedProducts];
+    if (filters.severity !== "all")
+      result = result.filter((p) => p.severity === filters.severity);
+    if (filters.type !== "all")
+      result = result.filter((p) => p.type === filters.type);
+    if (filters.impurity !== "all")
+      result = result.filter((p) => p.impurity === filters.impurity);
+    if (filters.skinType !== "all")
+      result = result.filter((p) => p.skinType === filters.skinType);
+    if (filters.bodyPart !== "all" && filters.area === "body")
       result = result.filter(
         (p) => p.bodyPart?.toLowerCase() === filters.bodyPart.toLowerCase()
       );
-    }
-
     // Sorting
     switch (filters.sortOrder) {
       case "name-asc":
@@ -119,7 +98,7 @@ export const Products = () => {
       default:
         return result;
     }
-  }, [filters, products, loading]);
+  }, [savedProducts, filters]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:ml-[240px] relative">
@@ -130,17 +109,18 @@ export const Products = () => {
           filters={filters}
           onFilterChange={(k, v) => setFilters((prev) => ({ ...prev, [k]: v }))}
         />
-
-        {filteredProducts.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-16">Loading...</div>
+        ) : filteredProducts.length === 0 ? (
           <div className="text-center py-16">
             <h3 className="text-xl font-medium mb-2">
-              {products.length === 0
+              {savedProductIds.length === 0
                 ? "No products found"
                 : "No matching products"}
             </h3>
             <p className="text-gray-500">
-              {products.length === 0
-                ? "There are currently no products available."
+              {savedProductIds.length === 0
+                ? "You haven't saved any products yet."
                 : "Try adjusting your filters."}
             </p>
           </div>

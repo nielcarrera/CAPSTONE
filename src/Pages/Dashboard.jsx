@@ -17,11 +17,7 @@ import { loadAnalysisData } from "../service/analysisDataService";
 
 import { useAuth } from "../context/AuthProvider";
 
-import {
-  ANALYSIS_DATA,
-  SEVERITY_COLORS,
-  getColorByValue,
-} from "../Pages/utils/DummyData";
+import { getColorByValue } from "../Pages/utils/DummyData";
 import { skinIssues, skinIssueDetails } from "../Pages/utils/SkinIssueconfig";
 import {
   computeSkinScore,

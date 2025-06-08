@@ -58,3 +58,9 @@ export const isAuthenticated = async () => {
   const session = await supabase.auth.getSession();
   return session?.data?.session !== null;
 };
+
+export const getCurrentUserId = async () => {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) return null;
+  return data.user.id;
+};

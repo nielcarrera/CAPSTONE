@@ -34,7 +34,7 @@ export async function loadAnalysisData(userId) {
     // Build an impurity map: { "Acne": 60, ... }
     const impurityMap = {};
     rawData.forEach((row) => {
-      impurityMap[row.impurity] = Math.round(row.percentage * 100);
+      impurityMap[row.impurity] = Math.round(row.percentage);
     });
 
     // Fill data, fallback to 0 if not in rawData

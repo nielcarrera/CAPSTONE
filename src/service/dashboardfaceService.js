@@ -7,26 +7,23 @@ import { supabase } from "../lib/supabaseClient";
  * Returns an array of strings in 'YYYY-MM-DD' format, sorted descending (newest first).
  */
 export async function fetchAvailableAnalysisDates(userId) {
+  // We assume you have a foreign‐key relationship saved_face_impurity.saved_impurity_id → saved_impurity.id
+  // Supabase will let you drill into that parent record:
   const { data, error } = await supabase
-    .from("saved_impurity")
-    .select("saved_face_impurity(analysis_date)")
-    .eq("user_id", userId)
-    .eq("kind", "face")
-    .order("analysis_date", {
-      ascending: false,
-      foreignTable: "saved_face_impurity",
-    });
+    .from("saved_face_impurity")
+    .select(
+      `
+      analysis_date,
+      saved_impurity ( user_id )
+    `
+    )
+    .eq("saved_impurity.user_id", userId)
+    .order("analysis_date", { ascending: false });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
-  // Map → filter out both null and undefined
-  const dates = data
-    .map((row) => row.saved_face_impurity?.analysis_date)
-    .filter((d) => d !== null && d !== undefined);
-
-  // Deduplicate & return
+  // Pull out just the dates, dedupe & return
+  const dates = data.map((r) => r.analysis_date).filter(Boolean);
   return [...new Set(dates)];
 }
 
@@ -36,28 +33,22 @@ export async function fetchAvailableAnalysisDates(userId) {
  */
 export async function fetchImpurityDataByDate(userId, date) {
   if (!date) return [];
-
   const { data, error } = await supabase
-    .from("saved_impurity")
+    .from("saved_face_impurity")
     .select(
       `
-      saved_face_impurity(
-        impurity,
-        percentage
-      )
-    `
+      impurity,
+      percentage,
+      analysis_date,
+      saved_impurity!inner(user_id)
+      `
     )
-    .eq("user_id", userId)
-    .eq("kind", "face")
-    .eq("saved_face_impurity.analysis_date", date);
+    .eq("analysis_date", date)
+    .eq("saved_impurity.user_id", userId);
 
-  if (error) {
-    throw error;
-  }
-
-  return data
-    .map((row) => row.saved_face_impurity)
-    .filter((item) => item !== null);
+  if (error) throw error;
+  // Only keep needed fields
+  return data.map(({ impurity, percentage }) => ({ impurity, percentage }));
 }
 
 // ── Insert one “face” analysis (parent + children) ────────────────────────────

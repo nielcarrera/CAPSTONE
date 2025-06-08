@@ -9,9 +9,7 @@ import { products } from "../Pages/utils/Productdata";
 export const fetchFaceProducts = async () => {
   try {
     // First try to fetch from Supabase
-    const { data, error } = await supabase
-      .from("face_products_view")
-      .select();
+    const { data, error } = await supabase.from("face_products_view").select();
     console.log("Supabase data:", data);
     if (error) throw error;
 
@@ -104,19 +102,23 @@ export const fetchRecentProducts = async (limit = 6) => {
 // productService.js
 
 export const fetchUserSavedProducts = async (userId) => {
-  // Just return the first few products as "saved" for now
   const { data, error } = await supabase
-    .from("face_products_view")
-    .select("*")
-    .limit(3); // simulate "saved" items
-
-  if (error) {
-    console.error("Supabase error:", error);
-    throw error;
-  }
-
-  return data.map(formatFaceProduct);
+    .from("user_saved_products")
+    .select("product_id, face_products_view:product_id(*)")
+    .eq("user_id", userId);
+  if (error) return [];
+  // Now you can safely use formatFaceProduct!
+  return data.map((item) => formatFaceProduct(item.face_products_view));
 };
+export const fetchUserSavedProductIds = async (userId, area) => {
+  const { data, error } = await supabase
+    .from("user_saved_products")
+    .select("product_id")
+    .eq("user_id", userId);
+  if (error) return [];
+  return data.map((item) => item.product_id);
+};
+
 /**
  * Fetches all saved products for a given user, including joined product details.
  * @param {string} userId
@@ -131,7 +133,11 @@ export const formatFaceProduct = (item) => {
   const asArray = (field) => {
     if (!field) return [];
     if (Array.isArray(field)) return field;
-    if (typeof field === "string") return field.split(",").map((v) => v.trim()).filter(Boolean);
+    if (typeof field === "string")
+      return field
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
     return [];
   };
 
@@ -158,7 +164,6 @@ export const formatFaceProduct = (item) => {
     user_product_id: p.product_id || "",
   };
 };
-
 
 // Main fetch function for saved products
 export const fetchSavedProducts = async (userId) => {

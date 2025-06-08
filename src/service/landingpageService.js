@@ -114,7 +114,7 @@ export const fetchRecentFaceKeyProblems = async (userId) => {
 
   const map = {};
   raw.forEach(({ impurity, percentage }) => {
-    map[impurity] = Math.round((percentage ?? 0) * 100);
+    map[impurity] = Math.round(percentage ?? 0);
   });
 
   return Object.entries(map)
@@ -138,25 +138,13 @@ export const fetchRecentFaceAnalytics = async (userId) => {
   const raw = await fetchImpuritiesByKindAndDate(userId, "face", latest);
   return raw.map(({ impurity, percentage }) => ({
     label: impurity,
-    value: Math.round((percentage ?? 0) * 100),
+    value: Math.round(percentage ?? 0),
   }));
 };
 
 /**
  * 🏆 Face skin score (0–100)
  */
-export const fetchRecentFaceSkinScore = async (userId) => {
-  const latest = await fetchLatestAnalysisDate(userId, "face");
-  if (!latest) return 100;
-
-  const raw = await fetchImpuritiesByKindAndDate(userId, "face", latest);
-  if (!raw.length) return 100;
-
-  const arr = raw.map(({ percentage }) => ({
-    value: Math.round((percentage ?? 0) * 100),
-  }));
-  return computeSkinScore(arr);
-};
 
 /**
  * 🌟 Top 3 body key problems
@@ -182,13 +170,6 @@ export const fetchRecentBodyKeyProblems = async (userId) => {
 /**
  * 🏅 Body skin score (0–100) — **this is the missing export**
  */
-export const fetchRecentBodySkinScore = async (userId) => {
-  const latest = await fetchLatestAnalysisDate(userId, "body");
-  if (!latest) return 0;
-
-  const raw = await fetchImpuritiesByKindAndDate(userId, "body", latest);
-  return computeSkinScore(raw);
-};
 
 /**
  * 🗃️ N most‐recent body impurities
