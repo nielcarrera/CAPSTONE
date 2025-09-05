@@ -1,7 +1,7 @@
 // src/service/analysisDataService.js
 
 // ✅ Add this line:
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient";
 import {
   fetchAvailableAnalysisDates,
   fetchImpurityDataByDate,
@@ -65,56 +65,3 @@ export async function loadAnalysisData(userId) {
   console.log("🚀 [DEBUG] final loadAnalysisData result:", result);
   return result;
 }
-
-/*
-export async function insertFaceAnalysis(
-  userId,
-  analysisDate,
-  impuritiesArray
-) {
-  // ── STEP 1: Insert parent WITHOUT returning
-  const { error: parentError } = await supabase
-    .from("saved_impurity")
-    .insert([{ user_id: userId, kind: "face" }], { returning: "minimal" });
-
-  if (parentError) {
-    console.error("Insert saved_impurity error:", parentError);
-    throw parentError;
-  }
-
-  // ── STEP 1b: Query for the newest parent row to get its ID ─────────────────────
-  const { data: parents, error: selectError } = await supabase
-    .from("saved_impurity")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("kind", "face")
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (selectError || !parents || parents.length === 0) {
-    console.error("Failed to retrieve new saved_impurity.id:", selectError);
-    throw selectError || new Error("No parent row found after insert");
-  }
-
-  const parentId = parents[0].id;
-
-  // ── STEP 2: Insert child rows using that parentId ───────────────────────────────
-  const childRows = impuritiesArray.map((imp) => ({
-    saved_impurity_id: parentId,
-    analysis_date: analysisDate,
-    impurity: imp.impurity,
-    percentage: imp.percentage,
-  }));
-
-  const { data: childData, error: childError } = await supabase
-    .from("saved_face_impurity")
-    .insert(childRows, { returning: "representation" });
-
-  if (childError) {
-    console.error("Insert saved_face_impurity error:", childError);
-    throw childError;
-  }
-
-  return { parentId, children: childData };
-}
-*/

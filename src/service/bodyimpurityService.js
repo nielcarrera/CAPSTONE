@@ -21,7 +21,10 @@ const fetchSavedImpurities = async (userId) => {
         body_impurities (
           id,
           name,
-          description
+          description,
+          common_locations,
+          prevalence,
+          image
         )
       )
     `

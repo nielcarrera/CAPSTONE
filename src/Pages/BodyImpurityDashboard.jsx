@@ -259,7 +259,7 @@ const BodyImpurityDashboard = () => {
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                       {impurity.description}
                     </p>
-                    <div className="text-[11px] text-gray-400 mb-3">
+                    <div className="text-[15px] text-gray-600 mb-3">
                       Detected: {formatDate(impurity.detected_at)}
                     </div>
                     <button

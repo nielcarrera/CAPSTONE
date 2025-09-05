@@ -5,8 +5,6 @@ export const saveRoutine = async (routineData, userId) => {
     throw new Error("User ID is missing. Cannot save routine.");
   }
 
-  console.log("Saving routine via RPC for userId:", userId);
-
   const { data: routineId, error } = await supabase.rpc(
     "insert_routine_with_steps",
     {
@@ -27,7 +25,6 @@ export const saveRoutine = async (routineData, userId) => {
   return routineId;
 };
 
-// ✅ New function to fetch user routines
 export async function fetchUserRoutines(userId) {
   try {
     const { data, error } = await supabase.rpc("get_routines_by_owner", {
@@ -35,14 +32,14 @@ export async function fetchUserRoutines(userId) {
     });
 
     if (error) throw error;
-    return data; // data should be array of routines with steps embedded
+    return data;
   } catch (error) {
     console.error("Error fetching routines:", error);
     return [];
   }
 }
 
-// Update an existing routine with steps
+// ✅ New function to update an existing routine with steps
 export async function updateRoutine(routineData, userId) {
   if (!userId) throw new Error("User ID is missing. Cannot update routine.");
   if (!routineData.id)
@@ -68,37 +65,30 @@ export async function updateRoutine(routineData, userId) {
     }
   );
 
-  if (error)
+  if (error) {
     throw new Error("Failed to update routine via RPC: " + error.message);
+  }
 
-  console.log("✅ Updated routine:", data);
+  console.log("✅ Updated routine with ID:", data);
   return data;
 }
 
-// Delete a routine by its ID
+// ✅ New function to delete a routine
 export async function deleteRoutine(routineId, userId) {
   if (!userId) throw new Error("User ID is missing. Cannot delete routine.");
   if (!routineId)
     throw new Error("Routine ID is missing. Cannot delete routine.");
 
-  console.log(
-    "Deleting routine via RPC for userId:",
-    userId,
-    "RoutineID:",
-    routineId
-  );
+  const { error } = await supabase
+    .from("routines")
+    .delete()
+    .eq("routine_id", routineId)
+    .eq("routine_owner", userId);
 
-  const { data, error } = await supabase.rpc(
-    "delete_routine", // your RPC name for deletion
-    {
-      p_routine_id: routineId,
-      p_routine_owner: userId, // Optional, if your RPC checks ownership
-    }
-  );
+  if (error) {
+    throw new Error("Failed to delete routine: " + error.message);
+  }
 
-  if (error)
-    throw new Error("Failed to delete routine via RPC: " + error.message);
-
-  console.log("✅ Deleted routine:", data);
-  return data;
+  console.log("✅ Deleted routine with ID:", routineId);
+  return true;
 }

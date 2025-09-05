@@ -1,7 +1,7 @@
 // src/service/landingpageService.js
 
-import { supabase } from "../lib/supabaseClient";
-import { computeSkinScore } from "../Pages/utils/SkinAnalytics"; // or wherever your computeSkinScore lives
+import { supabase } from "../../lib/supabaseClient";
+import { computeSkinScore } from "../../Pages/utils/SkinAnalytics"; // or wherever your computeSkinScore lives
 
 /**
  * 🔍 Fetch the single most-recent analysis date for “face” or “body”

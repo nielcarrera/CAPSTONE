@@ -1,25 +1,10 @@
 // src/pages/LandingPage.jsx
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
-
-// service functions (note: lowercase “landingpageService” to match file on disk)
-import {
-  fetchUserDetails,
-  fetchUserSkinType,
-  fetchRecentProducts,
-  fetchRecentFaceKeyProblems,
-  fetchRecentFaceAnalytics,
-  fetchRecentBodyKeyProblems,
-  fetchRecentBodyImpurities,
-} from "../service/landingpageService";
-
-// Dashboard’s loader & shared scorer
-import { loadAnalysisData } from "../service/analysisDataService";
-import { computeSkinScore } from "../Pages/utils/SkinAnalytics";
+import { useLandingPageData } from "./hooks/LandingPage/lp_hook";
 
 const ALL_IMPURITIES = [
   "Whiteheads",
@@ -32,98 +17,21 @@ const ALL_IMPURITIES = [
 ];
 
 const LandingPage = () => {
-  const [userData, setUserData] = useState({
-    firstName: "",
-    skinType: null,
-    faceKeyProblems: [],
-    faceAnalytics: [],
-    faceScore: 0,
-    bodyKeyProblems: [],
-    bodyScore: 0,
-  });
-  const [bodyImpurities, setBodyImpurities] = useState([]);
-  const [recentProducts, setRecentProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // 👇 All the complex logic is now in this single line
+  const { data, loading, error } = useLandingPageData();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          navigate("/login");
-          return;
-        }
-        const userId = user.id;
-
-        // 1) Profile
-        const userDetails = await fetchUserDetails(userId);
-        const userSkinType = await fetchUserSkinType(userId);
-
-        // 2) Mirror Dashboard’s loader + scorer exactly
-        const allAnalysis = await loadAnalysisData(userId);
-        const dates = Object.keys(allAnalysis).sort((a, b) =>
-          b.localeCompare(a)
-        );
-        const latestDate = dates[0];
-        console.log("🚩 LandingPage dates:", dates, "→ using", latestDate);
-
-        const faceImpurities = allAnalysis[latestDate]?.impurities || [];
-        const faceScore = computeSkinScore(faceImpurities);
-
-        // 3) But still use your helpers for keyProblems + analytics
-        const [faceKeyProblems, faceAnalytics] = await Promise.all([
-          fetchRecentFaceKeyProblems(userId),
-          fetchRecentFaceAnalytics(userId),
-        ]);
-
-        // 4) Body keyProblems + score
-        const [bodyKeyProblems, bodyScore] = await Promise.all([
-          fetchRecentBodyKeyProblems(userId),
-        ]);
-
-        // 5) Body‐impurity cards
-        const recentBodies = await fetchRecentBodyImpurities(userId, 3);
-
-        // 6) Saved products
-        const products = await fetchRecentProducts(userId, 3);
-
-        // 7) Update state
-        setUserData({
-          firstName: userDetails?.first_name || "User",
-          skinType: userSkinType || null,
-          faceKeyProblems,
-          faceAnalytics,
-          faceScore,
-          bodyKeyProblems,
-          bodyScore,
-        });
-
-        setBodyImpurities(recentBodies);
-        setRecentProducts(products);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [navigate]);
 
   if (loading) {
     return (
-      <div className="min-h-screen p-4 ml-0 md:ml-[240px] mt-25 flex items-center justify-center">
+      <div className="min-h-screen p-4 ml-0 md:ml-[240px] flex items-center justify-center">
         <div className="text-lg">Loading your skin analysis...</div>
       </div>
     );
   }
 
-  if (!userData.firstName) {
+  if (error || !data) {
     return (
-      <div className="min-h-screen p-4 ml-0 md:ml-[240px] mt-25 flex items-center justify-center">
+      <div className="min-h-screen p-4 ml-0 md:ml-[240px] flex items-center justify-center">
         <div className="text-lg text-red-500">Failed to load skin data</div>
       </div>
     );
@@ -131,7 +39,7 @@ const LandingPage = () => {
 
   const handleSeeMore = () => navigate("/product");
   const analyticsMap = new Map(
-    userData.faceAnalytics.map((item) => [item.label, item.value])
+    data.faceAnalytics.map((item) => [item.label, item.value])
   );
 
   return (
@@ -143,7 +51,7 @@ const LandingPage = () => {
         <header className="mb-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl md:text-3xl font-bold animate-fade-in">
-              Hello, <span className="text-cyan-800">{userData.firstName}</span>
+              Hello, <span className="text-cyan-800">{data.firstName}</span>
             </h1>
           </div>
           <p
@@ -168,8 +76,8 @@ const LandingPage = () => {
                 </h2>
                 <div className="mt-4 overflow-x-auto hide-scrollbar">
                   <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-5 w-max md:w-full">
-                    {userData.faceKeyProblems.length > 0 ? (
-                      userData.faceKeyProblems.map((problem, i) => (
+                    {data.faceKeyProblems.length > 0 ? (
+                      data.faceKeyProblems.map((problem, i) => (
                         <div
                           key={problem.label}
                           className="space-y-1 animate-fade-in min-w-[120px] md:min-w-0"
@@ -214,15 +122,15 @@ const LandingPage = () => {
                 <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-black">
                   Recent Body Impurities
                 </h2>
-                {bodyImpurities.length > 0 ? (
+                {data.bodyImpurities.length > 0 ? (
                   <div
                     className={`grid ${
-                      bodyImpurities.length === 1
+                      data.bodyImpurities.length === 1
                         ? "grid-cols-1"
                         : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                     } gap-4`}
                   >
-                    {bodyImpurities.map((imp, i) => (
+                    {data.bodyImpurities.map((imp, i) => (
                       <div
                         key={i}
                         className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow animate-fade-in"
@@ -307,17 +215,17 @@ const LandingPage = () => {
                 </h2>
                 <div className="flex flex-col items-center justify-center py-1 md:py-2 animate-fade-in">
                   <div className="text-4xl md:text-5xl font-bold text-blue-400">
-                    {userData.faceScore}
+                    {data.faceScore}
                     <span className="text-lg md:text-xl text-gray-400 ml-1">
                       /100
                     </span>
                   </div>
                   <div className="mt-1 md:mt-2 text-sm text-gray-100">
-                    {userData.faceScore >= 80
+                    {data.faceScore >= 80
                       ? "Excellent"
-                      : userData.faceScore >= 60
+                      : data.faceScore >= 60
                       ? "Good"
-                      : userData.faceScore >= 40
+                      : data.faceScore >= 40
                       ? "Fair"
                       : "Needs Attention"}
                   </div>
@@ -335,21 +243,8 @@ const LandingPage = () => {
                   <div className="text-2xl md:text-3xl font-semibold text-gray-800">
                     Skintype:{" "}
                     <span className="text-cyan-800 text-3xl md:text-4xl font-bold">
-                      {userData.skinType || "N/A"}
+                      {data.skinType || "N/A"}
                     </span>
-                  </div>
-                  <div className="mt-1 md:mt-2 text-xs md:text-sm text-gray-500 text-center">
-                    {userData.skinType === "Dry"
-                      ? "Your skin lacks oil and needs moisture."
-                      : userData.skinType === "Oily"
-                      ? "Your skin produces excess sebum."
-                      : userData.skinType === "Combination"
-                      ? "Your T-zone is oily, but cheeks are dry."
-                      : userData.skinType === "Normal"
-                      ? "Your skin is well-balanced."
-                      : userData.skinType === "Sensitive"
-                      ? "Your skin reacts easily to products."
-                      : "Please set your skin type on the My Skintype Page."}
                   </div>
                 </div>
               </div>
@@ -370,7 +265,7 @@ const LandingPage = () => {
                 <h2 className="text-lg md:text-xl font-semibold">
                   Recently Saved Products
                 </h2>
-                {recentProducts.length > 0 && (
+                {data.recentProducts.length > 0 && (
                   <button
                     onClick={handleSeeMore}
                     className="text-xs md:text-sm text-blue-500 hover:text-blue-600 font-medium"
@@ -379,9 +274,9 @@ const LandingPage = () => {
                   </button>
                 )}
               </div>
-              {recentProducts.length > 0 ? (
+              {data.recentProducts.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5 h-full">
-                  {recentProducts.map((product) => (
+                  {data.recentProducts.map((product) => (
                     <div
                       key={product.id}
                       className="h-[220px] rounded-lg overflow-hidden border border-gray-200 transition-transform hover:-translate-y-1 hover:shadow-lg flex flex-col"

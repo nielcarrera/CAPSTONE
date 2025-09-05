@@ -16,7 +16,7 @@ import Legs from "./components/bodyparts/legs";
 import Back from "./components/bodyparts/back";
 import Routine from "./Pages/Routine";
 import LandingPage from "./Pages/LandingPage";
-import ProductReccomendations from "./Pages/Product_Reccomendation";
+
 import Product from "./Pages/Product";
 import BodyImpurityDashboard from "./Pages/BodyImpurityDashboard";
 import ReccomendedProductsDialog from "./components/ReccomendedProductsDialog";
@@ -32,14 +32,6 @@ const router = createBrowserRouter([
   { path: "/db", element: <Dashboard></Dashboard> },
   { path: "/product", element: <Product></Product> },
   { path: "/body", element: <BodyImpurityDashboard></BodyImpurityDashboard> },
-  {
-    path: "/prodrecco",
-    element: <ProductReccomendations></ProductReccomendations>,
-  },
-  {
-    path: "/product-recommendations",
-    element: <ReccomendedProductsDialog></ReccomendedProductsDialog>,
-  },
 
   { path: "/profile", element: <Profile></Profile> },
   { path: "/skintype", element: <Skintype></Skintype> },

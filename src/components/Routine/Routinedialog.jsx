@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X, Trash, Edit } from "lucide-react";
 import ProductListDialog from "./ProductListDialog";
-import { saveRoutine } from "../../service/routineService";
-import { supabase } from "../../lib/supabaseClient"; // Adjust relative path as needed
+// ✅ Import the updateRoutine function
+import { saveRoutine, updateRoutine } from "../../service/routineService";
+import { supabase } from "../../lib/supabaseClient";
 
 const timeOptions = Array.from({ length: 24 }, (_, i) => {
   const hour = i % 12 || 12;
@@ -10,17 +11,75 @@ const timeOptions = Array.from({ length: 24 }, (_, i) => {
   return `${hour}:00 ${ampm}`;
 });
 
-const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
+// ✅ Add initialRoutineData to props
+const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
   const [routineData, setRoutineData] = useState({
     type: "Morning",
     name: "",
-    time: timeOptions[7], // Default to 7:00 AM
+    time: timeOptions[7],
     duration: 10,
   });
   const [steps, setSteps] = useState([{ id: 1, product: "", note: "" }]);
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [currentStepId, setCurrentStepId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // ✅ New useEffect to handle routine data initialization
+  useEffect(() => {
+    if (initialRoutineData) {
+      setRoutineData({
+        type: initialRoutineData.type || "Morning",
+        name: initialRoutineData.name || "",
+        time: initialRoutineData.time || timeOptions[7],
+        duration: initialRoutineData.duration || 10,
+      });
+
+      // Map routine steps to component state format
+      const mappedSteps = initialRoutineData.steps.map((step, index) => ({
+        id: index + 1,
+        productId: step.productId,
+        productName: step.product, // The API returns 'product' as the name
+        note: step.note || "",
+      }));
+      setSteps(
+        mappedSteps.length > 0
+          ? mappedSteps
+          : [{ id: 1, product: "", note: "" }]
+      );
+    } else {
+      // Reset to default for new routine
+      setRoutineData({
+        type: "Morning",
+        name: "",
+        time: timeOptions[7],
+        duration: 10,
+      });
+      setSteps([{ id: 1, product: "", note: "" }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRoutineData]);
+
+  const validateRoutine = () => {
+    let errors = {};
+    let isValid = true;
+
+    if (!routineData.name.trim()) {
+      errors.name = "Routine name is required.";
+      isValid = false;
+    }
+
+    // Validate each step has a product
+    steps.forEach((step, index) => {
+      if (!step.productId) {
+        errors[`step_${index}`] = "Please select a product.";
+        isValid = false;
+      }
+    });
+
+    setValidationErrors(errors);
+    return isValid;
+  };
 
   const addStep = () => {
     const newStep = { id: steps.length + 1, product: "", note: "" };
@@ -32,13 +91,9 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
   };
 
   const handleProductSelect = (product) => {
-    console.log("Handle product select:", product);
     setSteps((prevSteps) =>
       prevSteps.map((step) => {
         if (step.id === currentStepId) {
-          console.log(
-            `Updating step ${step.id} with product id ${product.id} and name ${product.name}`
-          );
           return { ...step, productId: product.id, productName: product.name };
         }
         return step;
@@ -57,12 +112,16 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
 
   const handleRoutineChange = (field, value) => {
     setRoutineData({ ...routineData, [field]: value });
+    setValidationErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const handleSave = async () => {
+    if (!validateRoutine()) {
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Step 1: Get current user from Supabase auth
       const {
         data: { user },
         error,
@@ -74,30 +133,49 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
       }
       const currentUserId = user.id;
 
-      // Step 2: Prepare routine data
       const routineToSave = {
         ...routineData,
         steps: steps
-          .filter((step) => step.productId) // must have productId UUID
+          .filter((step) => step.productId)
           .map(({ id, productId, note }) => ({
             stepNumber: id,
             product: productId,
             note,
           })),
-        createdAt: new Date().toISOString(),
+        // ✅ Add routine ID for updates
+        id: initialRoutineData ? initialRoutineData.id : null,
       };
 
-      // Step 3: Call your saveRoutine with currentUserId
-      await saveRoutine(routineToSave, currentUserId);
+      // ✅ Use a different function for updating
+      if (initialRoutineData) {
+        await updateRoutine(routineToSave, currentUserId);
+        alert("Routine updated successfully!");
+      } else {
+        await saveRoutine(routineToSave, currentUserId);
+        alert("Routine saved successfully!");
+      }
 
-      alert("Routine saved successfully!");
       onOpenChange(false);
+      // ✅ Call the onSave prop to notify parent component
+      onSave(routineToSave);
     } catch (error) {
       alert("Failed to save routine: " + error.message);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    validateRoutine();
+  }, [steps, routineData.name]);
+
+  const hasValidationErrors = Object.values(validationErrors).some(
+    (e) => e.length > 0
+  );
+  const dialogTitle = initialRoutineData
+    ? "Edit Routine"
+    : "Create New Routine";
+  const buttonText = initialRoutineData ? "Update Routine" : "Save Routine";
 
   return (
     <>
@@ -112,7 +190,8 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
                 <X className="w-5 h-5" />
               </button>
 
-              <h2 className="text-xl font-semibold mb-6">Create New Routine</h2>
+              {/* ✅ Dynamic Dialog Title */}
+              <h2 className="text-xl font-semibold mb-6">{dialogTitle}</h2>
 
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -144,8 +223,17 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
                         handleRoutineChange("name", e.target.value)
                       }
                       placeholder="e.g. 'My Glow Routine'"
-                      className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full rounded border p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.name
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
                     />
+                    {validationErrors.name && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {validationErrors.name}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -191,10 +279,10 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
                     Routine Steps
                   </label>
                   <div className="space-y-3">
-                    {steps.map((step) => (
+                    {steps.map((step, index) => (
                       <div key={step.id} className="border rounded-lg p-4">
                         <div className="flex justify-between items-start mb-3">
-                          <span className="font-medium">Step {step.id}</span>
+                          <span className="font-medium">Step {index + 1}</span>
                           {steps.length > 1 && (
                             <button
                               onClick={() => handleDeleteStep(step.id)}
@@ -220,9 +308,12 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
                                   setShowProductDialog(true);
                                 }}
                                 placeholder="Select your product"
-                                className="w-full rounded border border-gray-300 p-2 pr-10 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className={`w-full rounded border p-2 pr-10 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
+                                  validationErrors[`step_${index}`]
+                                    ? "border-red-500"
+                                    : "border-gray-300"
+                                }`}
                               />
-
                               <button
                                 onClick={() => {
                                   setCurrentStepId(step.id);
@@ -233,6 +324,11 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
                                 <Edit className="w-4 h-4" />
                               </button>
                             </div>
+                            {validationErrors[`step_${index}`] && (
+                              <p className="text-red-500 text-xs mt-1">
+                                {validationErrors[`step_${index}`]}
+                              </p>
+                            )}
                           </div>
 
                           <div>
@@ -252,6 +348,12 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
                         </div>
                       </div>
                     ))}
+
+                    {steps.length === 0 && validationErrors.steps && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {validationErrors.steps}
+                      </p>
+                    )}
 
                     <button
                       type="button"
@@ -274,9 +376,9 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
                   <button
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
                     onClick={handleSave}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || hasValidationErrors}
                   >
-                    {isSubmitting ? "Saving..." : "Save Routine"}
+                    {isSubmitting ? "Saving..." : buttonText}
                   </button>
                 </div>
               </div>
@@ -288,7 +390,6 @@ const RoutineDialog = ({ open, onOpenChange, onSave, userId }) => {
         open={showProductDialog}
         onClose={() => setShowProductDialog(false)}
         onSelectProduct={(product) => {
-          console.log("Selected product:", product); // <-- Add this console to verify!
           handleProductSelect(product);
         }}
       />

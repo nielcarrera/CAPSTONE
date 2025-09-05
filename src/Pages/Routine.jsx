@@ -5,15 +5,20 @@ import Navbar from "../components/Navbar";
 import RoutineDialog from "../components/Routine/Routinedialog";
 import { useAuth } from "../context/AuthProvider";
 import { products } from "../Pages/utils/Productdata";
-import { supabase } from "../lib/supabaseClient"; // example path
+import { supabase } from "../lib/supabaseClient";
 
-import { fetchUserRoutines } from "../service/routineService"; // adjust path accordingly
+// ✅ Import the new updateRoutine function
+import {
+  fetchUserRoutines,
+  updateRoutine,
+  deleteRoutine,
+} from "../service/routineService";
 
 const RoutinesPage = () => {
   const { currentUser: user } = useAuth();
-
   const [routines, setRoutines] = useState([]);
   const [showDialog, setShowDialog] = useState(false);
+  const [editingRoutine, setEditingRoutine] = useState(null);
   const [visibleSections, setVisibleSections] = useState({
     morning: true,
     night: true,
@@ -35,73 +40,82 @@ const RoutinesPage = () => {
       [routineId]: !prev[routineId],
     }));
   };
+
   useEffect(() => {
-    const loadRoutines = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        console.error("No user logged in");
-        return;
-      }
-
-      try {
-        const savedRoutines = await fetchUserRoutines(user.id);
-
-        const mappedRoutines = savedRoutines.map((r) => ({
-          id: r.routine_id,
-          name: r.routine_name,
-          type: r.type,
-          time: r.time,
-          duration: r.duration,
-          steps: r.steps.map((step) => ({
-            ...step,
-            stepNumber: step.step_number,
-            product: step.product_name,
-            note: step.note,
-            id: step.step_number,
-          })),
-          notificationEnabled: true,
-        }));
-
-        setRoutines(mappedRoutines);
-      } catch (err) {
-        console.error("Error loading routines:", err.message);
-      }
-    };
-
-    loadRoutines(); // <--- call it here
+    loadRoutines();
   }, []);
 
-  const handleSaveRoutine = async (newRoutine) => {
+  const loadRoutines = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error("No user logged in");
+      return;
+    }
+
     try {
-      const routineWithId = {
-        ...newRoutine,
-        id: Date.now(),
+      const savedRoutines = await fetchUserRoutines(user.id);
+
+      const mappedRoutines = savedRoutines.map((r) => ({
+        id: r.routine_id,
+        name: r.routine_name,
+        type: r.type,
+        time: r.time,
+        duration: r.duration,
+        steps: r.steps.map((step, index) => ({
+          stepNumber: step.step_number,
+          product: step.product_name,
+          productId: step.product_id,
+          note: step.note,
+          id: step.step_number || index, // Use a reliable ID for the key
+        })),
         notificationEnabled: true,
-      };
-      setRoutines([...routines, routineWithId]);
-      setShowDialog(false);
-    } catch (error) {
-      alert("Failed to save routine: " + error.message);
+      }));
+
+      setRoutines(mappedRoutines);
+    } catch (err) {
+      console.error("Error loading routines:", err.message);
     }
   };
 
-  const handleDeleteRoutine = (id) => {
-    setRoutines(routines.filter((routine) => routine.id !== id));
-    setDeleteConfirmation(null);
+  // ✅ Updated handleSaveRoutine to handle both create and edit
+  const handleSaveRoutine = async (savedRoutine) => {
+    // Reload routines to ensure state is in sync with the database
+    await loadRoutines();
+    setShowDialog(false);
+    setEditingRoutine(null); // Reset editing state
   };
 
-  console.log("Routines:", routines);
-  routines.forEach((routine) => {
-    console.log(routine.routine_name);
-    console.log(routine.steps); // array of steps
-  });
+  const handleDeleteRoutine = async (id) => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        alert("You must be logged in to delete a routine.");
+        return;
+      }
+      // Call a delete function in routineService
+      await deleteRoutine(id, user.id);
+      setRoutines(routines.filter((routine) => routine.id !== id));
+      setDeleteConfirmation(null);
+    } catch (error) {
+      alert("Failed to delete routine: " + error.message);
+    }
+  };
 
+  // ✅ New function to set the routine for editing
   const handleEditRoutine = (routine) => {
-    // TODO: Implement edit functionality
-    alert("Edit functionality will be implemented here");
+    setEditingRoutine(routine);
+    setShowDialog(true);
+  };
+
+  // ✅ New function to close the dialog and reset editing state
+  const handleDialogClose = () => {
+    setShowDialog(false);
+    setEditingRoutine(null);
   };
 
   const getProductDetails = (productName) => {
@@ -177,7 +191,7 @@ const RoutinesPage = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleEditRoutine(routine)}
+                            onClick={() => handleEditRoutine(routine)} // ✅ Use the new edit handler
                             className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                             title="Edit routine"
                           >
@@ -236,7 +250,7 @@ const RoutinesPage = () => {
                                   className="hover:bg-gray-50 transition-colors"
                                 >
                                   <td className="py-3 pl-6 pr-4 text-gray-800 font-medium">
-                                    {step.id}
+                                    {step.stepNumber}
                                   </td>
                                   <td className="py-3 px-4 text-gray-800 border-l border-gray-200">
                                     {step.product}
@@ -262,7 +276,6 @@ const RoutinesPage = () => {
                           </tbody>
                         </table>
                       </div>
-                      {/* Notification Switch - bottom of card, outside the table */}
                       <div className="flex justify-end mt-8">
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-gray-700 mr-2">
@@ -271,11 +284,11 @@ const RoutinesPage = () => {
                           <button
                             onClick={() => toggleNotification(routine.id)}
                             className={`relative inline-flex items-center h-6 w-11 rounded-full focus:outline-none transition-colors
-          ${
-            notificationStates[routine.id]
-              ? "bg-green-500"
-              : "bg-gray-500 border border-white"
-          }`}
+                  ${
+                    notificationStates[routine.id]
+                      ? "bg-green-500"
+                      : "bg-gray-500 border border-white"
+                  }`}
                             title={
                               notificationStates[routine.id]
                                 ? "Disable notifications"
@@ -285,15 +298,19 @@ const RoutinesPage = () => {
                           >
                             <span
                               className={`absolute left-0 top-0 h-6 w-11 rounded-full transition-colors duration-200
-            ${notificationStates[routine.id] ? "bg-green-500" : "bg-gray-500"}`}
+                  ${
+                    notificationStates[routine.id]
+                      ? "bg-green-500"
+                      : "bg-gray-500"
+                  }`}
                             ></span>
                             <span
                               className={`inline-block h-5 w-5 transform rounded-full border transition-transform duration-200 bg-white
-            ${
-              notificationStates[routine.id]
-                ? "translate-x-6 border-green-500"
-                : "translate-x-1 border-gray-300"
-            }`}
+                  ${
+                    notificationStates[routine.id]
+                      ? "translate-x-6 border-green-500"
+                      : "translate-x-1 border-gray-300"
+                  }`}
                             ></span>
                           </button>
                         </div>
@@ -318,7 +335,10 @@ const RoutinesPage = () => {
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-2xl font-bold text-gray-800">My Routines</h1>
             <button
-              onClick={() => setShowDialog(true)}
+              onClick={() => {
+                setEditingRoutine(null); // Reset to ensure a new routine is created
+                setShowDialog(true);
+              }}
               className="inline-flex items-center px-4 py-2 bg-cyan-800 text-white rounded-lg hover:bg-cyan-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -334,9 +354,8 @@ const RoutinesPage = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirmation && (
-        <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white border-1 rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
             <p className="text-gray-600 mb-6">
@@ -359,23 +378,27 @@ const RoutinesPage = () => {
                 Delete
               </button>
             </div>
-          </div> 
+          </div>
         </div>
       )}
 
-      {/* Floating Add Routine Button */}
       <button
-        onClick={() => setShowDialog(true)}
+        onClick={() => {
+          setEditingRoutine(null);
+          setShowDialog(true);
+        }}
         className="fixed bottom-6 right-6 z-50 bg-cyan-800 text-white p-4 rounded-full shadow-lg hover:bg-cyan-700 transition-all"
         title="Add Routine"
       >
         <Plus className="w-6 h-6" />
       </button>
 
+      {/* ✅ Pass initialRoutineData prop */}
       <RoutineDialog
         open={showDialog}
-        onOpenChange={setShowDialog}
+        onOpenChange={handleDialogClose} // Use the new close handler
         onSave={handleSaveRoutine}
+        initialRoutineData={editingRoutine}
       />
     </div>
   );
