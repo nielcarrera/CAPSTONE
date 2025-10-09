@@ -3,7 +3,6 @@ import { FaApple, FaGooglePlay } from "react-icons/fa";
 import phone from "../assets/phone.jpg";
 import qr from "../assets/qr.png";
 import Navbar from "../components/Navbar";
-import { div } from "motion/react-client";
 
 const Download = () => {
   return (

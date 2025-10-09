@@ -1,20 +1,19 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import logo from "../assets/weblogo.png";
+import logo from "../assets/logo.webp";
 
 const NavbarSS = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
+  const toggleMenu = () => setIsOpen(!isOpen);
 
   const menuItems = [
     { title: "Home", path: "/home" },
     { title: "Dashboard", path: "/login" },
 
-    { title: "Download App", path: "/download" },
+    { title: "About Us", path: "/about" }, // ✅ NEW ITEM
+    { title: "Legal and Faqs", path: "/legal" }, // ✅ NEW ITEM
   ];
 
   return (
@@ -23,11 +22,7 @@ const NavbarSS = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <img
-              src={logo} // Replace with your actual logo path
-              alt="Logo"
-              className="w-35 h-13  "
-            />
+            <img src={logo} alt="Logo" className="w-50 h-37" />
           </div>
 
           {/* Desktop Menu */}
@@ -37,26 +32,25 @@ const NavbarSS = () => {
                 key={item.title}
                 to={item.path}
                 className="text-gray-300 relative px-4 py-2 text-m font-medium transition-all duration-300 
-                  hover:text-purple-100 before:content-[''] before:absolute before:left-1/2 before:bottom-0 before:w-0 before:h-[2px] 
-                  before:bg-white before:transition-all before:duration-300 before:ease-in-out 
-                  hover:before:w-full hover:before:left-0"
+                hover:text-purple-100 before:content-[''] before:absolute before:left-1/2 before:bottom-0 before:w-0 before:h-[2px] 
+                before:bg-white before:transition-all before:duration-300 before:ease-in-out 
+                hover:before:w-full hover:before:left-0"
               >
                 {item.title}
               </Link>
             ))}
           </div>
 
-          {/* Logout Button */}
+          {/* Login Button */}
           <Link
             to="/login"
-            className="hidden md:block bg-gray-800 font-semibold  text-white px-15 py-3 rounded-md text-sm font-medium 
-              transition-all duration-300 shadow-sm hover:shadow-md hover:bg-gray-600 
-              transform hover:scale-105 active:scale-95"
+            className="hidden md:block bg-gray-800 font-semibold text-white px-15 py-3 rounded-md text-sm font-medium 
+            transition-all duration-300 shadow-sm hover:shadow-md hover:bg-gray-600 transform hover:scale-105 active:scale-95"
           >
             Login
           </Link>
 
-          {/* Mobile menu button */}
+          {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
             <button
               onClick={toggleMenu}
@@ -83,15 +77,15 @@ const NavbarSS = () => {
                 key={item.title}
                 to={item.path}
                 className="text-white block px-3 py-2 rounded-md text-base font-medium transition-all duration-300 
-                  hover:bg-purple-200 hover:text-purple-900"
+                hover:bg-purple-200 hover:text-purple-900"
               >
                 {item.title}
               </Link>
             ))}
             <Link
               to="/logout"
-              className=" text-left bg-gray-900 text-white px-15 py-2 rounded-md text-base font-medium 
-                transition-all duration-300 hover:bg-gray-700 transform hover:scale-105 active:scale-95"
+              className="text-left bg-gray-900 text-white px-15 py-2 rounded-md text-base font-medium 
+              transition-all duration-300 hover:bg-gray-700 transform hover:scale-105 active:scale-95"
             >
               Logout
             </Link>

@@ -10,21 +10,25 @@ import Home from "./Pages/Home";
 import Dashboard from "./Pages/Dashboard";
 import Download from "./Pages/Download";
 import Skintype from "./Pages/Skintype";
+import Legal from "./Pages/Legal";
 import Profile from "./Pages/Profile";
 import Arms from "./components/bodyparts/arms";
 import Legs from "./components/bodyparts/legs";
 import Back from "./components/bodyparts/back";
 import Routine from "./Pages/Routine";
 import LandingPage from "./Pages/LandingPage";
-
+import AboutInsecurityFree from "./Pages/About";
 import Product from "./Pages/Product";
 import BodyImpurityDashboard from "./Pages/BodyImpurityDashboard";
 import ReccomendedProductsDialog from "./components/ReccomendedProductsDialog";
 
 const router = createBrowserRouter([
-  { path: "/", element: <Login></Login> },
+  { path: "/", element: <Home></Home> },
   { path: "home/", element: <Home></Home> },
   { path: "/lp", element: <LandingPage></LandingPage> },
+  { path: "/legal", element: <Legal></Legal> },
+
+  { path: "/about", element: <AboutInsecurityFree></AboutInsecurityFree> },
   { path: "/Login", element: <Login></Login> },
   { path: "/register", element: <Register></Register> },
   { path: "/intro", element: <Intro></Intro> },

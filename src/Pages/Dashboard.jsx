@@ -91,7 +91,6 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 ml-0 md:ml-[240px] relative">
       <Sidebar />
-      <Navbar />
 
       {/* Dark overlay when tour is active */}
       {showTour && (
@@ -223,57 +222,6 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Skin Score Card (UNCHANGED) */}
-        <div
-          id="skin-score"
-          className={`bg-gray-800 rounded-xl shadow-sm overflow-hidden transition-all duration-300 ${
-            isHighlighted("skin-score")
-              ? "ring-4 ring-blue-500 z-10"
-              : showTour
-              ? "opacity-40"
-              : ""
-          }`}
-          style={{ minHeight: "180px" }}
-        >
-          <div className="p-4 h-full flex flex-col">
-            <div className="flex justify-between items-start">
-              <h2 className="text-lg md:text-xl text-white font-semibold">
-                Overall Skin Score
-              </h2>
-              <button
-                onClick={handleShareScore}
-                className="text-gray-300 hover:text-white"
-              >
-                <Share className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex-grow flex flex-col items-center justify-center">
-              <div className="text-4xl md:text-5xl font-bold text-blue-400">
-                {skinScore}
-                <span className="text-lg md:text-xl text-gray-400 ml-1">
-                  /100
-                </span>
-              </div>
-              <div className="mt-1 text-sm text-gray-100">
-                {skinScore >= 80
-                  ? "Excellent"
-                  : skinScore >= 60
-                  ? "Good"
-                  : skinScore >= 40
-                  ? "Fair"
-                  : "Needs Attention"}
-              </div>
-            </div>
-            <div className="h-1 bg-gray-700 w-full mt-auto">
-              <div
-                className="h-full bg-blue-500 transition-all duration-500"
-                style={{ width: `${skinScore}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Charts Section (UNCHANGED) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <section
             id="spider-graph"
@@ -285,24 +233,31 @@ const Dashboard = () => {
                 : ""
             }`}
           >
-            <h2 className="text-xl font-semibold mb-4">
+            <h2 className="text-xl font-semibold mb-4 text-center">
               Skin Issues Distribution
             </h2>
-            <div className="h-[300px] md:h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={currentData.radarData}>
-                  <PolarGrid stroke="#e5e7eb" />
-                  <PolarAngleAxis dataKey="subject" stroke="#6b7280" />
-                  <Radar
-                    name="Skin Issues"
-                    dataKey="A"
-                    stroke="#8b5cf6"
-                    fill="#4A044E"
-                    fillOpacity={0.6}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
+            {currentData.radarData.length > 0 ? (
+              <div className="h-[300px] md:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={currentData.radarData}>
+                    <PolarGrid stroke="#e5e7eb" />
+                    <PolarAngleAxis dataKey="subject" stroke="#6b7280" />
+                    <Radar
+                      name="Skin Issues"
+                      dataKey="A"
+                      stroke="#8b5cf6"
+                      fill="#4A044E"
+                      fillOpacity={0.6}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 italic">
+                No saved Skin Issues Distribution, please use our mobile
+                application to have one.
+              </p>
+            )}
           </section>
 
           <section
@@ -318,41 +273,50 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold text-center mb-10">
               Skin Issues Analytics
             </h2>
-            <div
-              className="flex space-x-2 justify-center overflow-x-auto"
-              style={{ scrollbarWidth: "none" }}
-            >
-              {currentData.analytics.map((issue) => (
-                <div
-                  key={issue.label}
-                  className="flex flex-col items-center space-y-2"
-                  style={{ width: "58px" }}
-                >
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className="text-sm font-medium"
-                      style={{
-                        writingMode: "vertical-rl",
-                        transform: "rotate(180deg)",
-                      }}
-                    >
-                      {issue.label}
-                    </div>
-                    <div className="relative w-7 min-h-80 bg-gray-700 rounded-md overflow-hidden flex">
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: `${issue.value}%` }}
-                        className="absolute bottom-0 w-full rounded-md"
+            {currentData.analytics.length > 0 ? (
+              <div
+                className="flex space-x-2 justify-center overflow-x-auto"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {currentData.analytics.map((issue) => (
+                  <div
+                    key={issue.label}
+                    className="flex flex-col items-center space-y-2"
+                    style={{ width: "58px" }}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div
+                        className="text-sm font-medium"
                         style={{
-                          backgroundColor: getColorByValue(issue.value),
+                          writingMode: "vertical-rl",
+                          transform: "rotate(180deg)",
                         }}
-                      />
+                      >
+                        {issue.label}
+                      </div>
+                      <div className="relative w-7 min-h-80 bg-gray-700 rounded-md overflow-hidden flex">
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: `${issue.value}%` }}
+                          className="absolute bottom-0 w-full rounded-md"
+                          style={{
+                            backgroundColor: getColorByValue(issue.value),
+                          }}
+                        />
+                      </div>
                     </div>
+                    <span className="text-sm font-semibold">
+                      {issue.value}%
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold">{issue.value}%</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 italic">
+                No saved Skin Issues Analytics, please use our mobile
+                application to have one.
+              </p>
+            )}
           </section>
         </div>
 
@@ -368,15 +332,22 @@ const Dashboard = () => {
           }`}
         >
           <h2 className="text-xl font-bold mb-6">Detailed Skin Analysis</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {sortedImpurities.map((impurity, index) => (
-              <ImpurityDetailsCard
-                key={`${impurity.label}-${index}`}
-                impurity={impurity}
-                index={index}
-              />
-            ))}
-          </div>
+          {sortedImpurities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {sortedImpurities.map((impurity, index) => (
+                <ImpurityDetailsCard
+                  key={`${impurity.label}-${index}`}
+                  impurity={impurity}
+                  index={index}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 italic">
+              No saved Detailed Skin Analysis, please use our mobile application
+              to have one.
+            </p>
+          )}
         </section>
 
         {/* View Recommendations Button (UNCHANGED) */}

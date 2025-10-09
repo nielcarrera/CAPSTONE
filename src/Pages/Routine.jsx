@@ -276,45 +276,6 @@ const RoutinesPage = () => {
                           </tbody>
                         </table>
                       </div>
-                      <div className="flex justify-end mt-8">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-700 mr-2">
-                            Notify Me
-                          </span>
-                          <button
-                            onClick={() => toggleNotification(routine.id)}
-                            className={`relative inline-flex items-center h-6 w-11 rounded-full focus:outline-none transition-colors
-                  ${
-                    notificationStates[routine.id]
-                      ? "bg-green-500"
-                      : "bg-gray-500 border border-white"
-                  }`}
-                            title={
-                              notificationStates[routine.id]
-                                ? "Disable notifications"
-                                : "Enable notifications"
-                            }
-                            aria-pressed={notificationStates[routine.id]}
-                          >
-                            <span
-                              className={`absolute left-0 top-0 h-6 w-11 rounded-full transition-colors duration-200
-                  ${
-                    notificationStates[routine.id]
-                      ? "bg-green-500"
-                      : "bg-gray-500"
-                  }`}
-                            ></span>
-                            <span
-                              className={`inline-block h-5 w-5 transform rounded-full border transition-transform duration-200 bg-white
-                  ${
-                    notificationStates[routine.id]
-                      ? "translate-x-6 border-green-500"
-                      : "translate-x-1 border-gray-300"
-                  }`}
-                            ></span>
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -328,7 +289,6 @@ const RoutinesPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <Navbar />
 
       <div className="p-4 md:p-8 lg:ml-64">
         <div className="max-w-5xl mx-auto">

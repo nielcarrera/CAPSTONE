@@ -101,19 +101,27 @@ const ProductListDialog = ({ open, onClose, onSelectProduct }) => {
           </div>
 
           {/* Product Grid */}
+
           {loading ? (
             <div className="flex justify-center items-center h-full">
               <p>Loading products...</p>
             </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex justify-center items-center h-full">
+              <p className="text-gray-500 text-lg">No products saved</p>
+            </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onClick={() => handleProductClick(product)}
-                />
-              ))}
+              {filteredProducts.map((product) => {
+                console.log("🖼️ Product image URL:", product.image);
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onClick={() => handleProductClick(product)}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

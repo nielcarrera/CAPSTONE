@@ -22,11 +22,11 @@ const ImpurityDetailsCard = ({ impurity, index }) => {
       {/* Top Section: Image and Stats */}
       <div className="flex flex-col md:flex-row gap-6">
         {/* Image */}
-        <div className="w-full md:w-2/5 h-48 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
+        <div className="w-48 h-48 rounded-full overflow-hidden flex-shrink-0 shadow-md mx-auto md:mx-0">
           <img
             src={impurity.image}
             alt={impurity.label}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-full"
           />
         </div>
 

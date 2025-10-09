@@ -37,6 +37,11 @@ const dateRanges = [
   { value: "year", label: "Last Year" },
 ];
 
+const pluralize = (word) => {
+  if (word.toLowerCase() === "severity") return "Severities"; // special case
+  return word.endsWith("y") ? word.slice(0, -1) + "ies" : word + "s";
+};
+
 const FilterDropdown = ({
   label,
   value,
@@ -52,7 +57,10 @@ const FilterDropdown = ({
         onClick={() => setIsOpen(!isOpen)}
         className="px-4 py-2 border rounded-md flex items-center justify-between w-full"
       >
-        <span>{value === "all" ? `All ${label}s` : capitalize(value)}</span>
+        <span>
+          {value === "all" ? `All ${pluralize(label)}` : capitalize(value)}
+        </span>
+
         <ChevronDown
           className={`h-4 w-4 transition-transform ${
             isOpen ? "rotate-180" : ""
@@ -73,7 +81,9 @@ const FilterDropdown = ({
               }`}
             >
               {option.label ||
-                (option === "all" ? `All ${label}s` : capitalize(option))}
+                (option === "all"
+                  ? `All ${pluralize(label)}`
+                  : capitalize(option))}
             </button>
           ))}
         </div>
@@ -100,21 +110,6 @@ export const ProductFilters = ({ filters, onFilterChange }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <h2 className="text-2xl font-bold">Skincare Products</h2>
         <div className="relative w-full md:w-auto">
-          <button
-            onClick={() => toggleOpen("sort")}
-            className="px-4 py-2 border rounded-md flex items-center justify-between w-full md:w-auto"
-          >
-            <span>
-              Sort by:{" "}
-              {sortOptions.find((opt) => opt.value === filters.sortOrder)
-                ?.label || "Sort by"}
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 transition-transform ${
-                openStates.sort ? "rotate-180" : ""
-              }`}
-            />
-          </button>
           {openStates.sort && (
             <div className="absolute right-0 mt-2 w-full md:w-48 bg-white rounded-md shadow-lg z-10 border">
               <div className="py-1">

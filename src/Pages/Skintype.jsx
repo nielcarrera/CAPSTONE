@@ -104,8 +104,7 @@ const ST = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen mt-20 ml-50 bg-gray-100 flex items-center justify-center">
-        <Navbar />
+      <div className="min-h-screen ml-50 bg-gray-100 flex items-center justify-center">
         <Sidebar />
         <div className="text-center">Loading your skin type information...</div>
       </div>
@@ -113,8 +112,7 @@ const ST = () => {
   }
 
   return (
-    <div className="min-h-screen mt-20 ml-50 bg-gray-100">
-      <Navbar />
+    <div className="min-h-screen  ml-50 bg-gray-100">
       <Sidebar />
       <main className="max-w-5xl mx-auto px-4 py-8 md:py-12">
         <motion.div

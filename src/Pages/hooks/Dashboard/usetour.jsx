@@ -17,12 +17,7 @@ export const tourSteps = [
     content:
       "Your top 3 skin concerns ranked by severity. These need immediate attention.",
   },
-  {
-    id: "skin-score",
-    title: "Skin Score",
-    content:
-      "Your overall skin health score (0-100) based on all detected issues.",
-  },
+
   {
     id: "spider-graph",
     title: "Skin Distribution",

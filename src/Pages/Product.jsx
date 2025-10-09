@@ -103,8 +103,8 @@ export const Products = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:ml-[240px] relative">
       <Sidebar />
-      <Navbar />
-      <div className="mt-16 md:mt-20 max-w-6xl mx-auto px-2 sm:px-4">
+
+      <div className="mt-10 max-w-6xl mx-auto px-2 sm:px-4">
         <ProductFilters
           filters={filters}
           onFilterChange={(k, v) => setFilters((prev) => ({ ...prev, [k]: v }))}

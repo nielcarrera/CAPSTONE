@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
@@ -8,8 +8,9 @@ import "swiper/css/autoplay";
 import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
-import logo from "../assets/weblogo.png";
+import logo from "../assets/logo.webp";
 import { supabase } from "../lib/supabaseClient";
+import TermsAndConditions from "../components/TermsandCondtion"; // Import the TermsAndConditions component
 
 const Register = () => {
   const [firstName, setFirstName] = useState("");
@@ -21,6 +22,7 @@ const Register = () => {
   const [gender, setGender] = useState("");
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false); // State to control Terms modal visibility
 
   const navigate = useNavigate();
 
@@ -149,6 +151,18 @@ const Register = () => {
     },
   ];
 
+  // Handle agreement to terms
+  const handleAgreeTerms = () => {
+    setAgree(true);
+    setShowTerms(false);
+  };
+
+  // Handle declining terms
+  const handleDeclineTerms = () => {
+    setAgree(false);
+    setShowTerms(false);
+  };
+
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white p-4">
       <div
@@ -156,11 +170,6 @@ const Register = () => {
         style={{ maxWidth: "1150px", width: "100%" }}
       >
         <div className="p-10 md:w-1/2 p-6 w-full">
-          <img
-            src={logo} // Replace with your actual logo path
-            alt="Logo"
-            className="w-35 h-13"
-          />
           <h2 className="text-2xl ml-5 md:text-3xl font-bold mb-10 mt-5">
             Create an account
           </h2>
@@ -247,9 +256,12 @@ const Register = () => {
               />
               <p className="text-sm">
                 I agree to the{" "}
-                <a href="#" className="text-blue-400">
+                <span
+                  className="text-blue-400 cursor-pointer hover:underline"
+                  onClick={() => setShowTerms(true)}
+                >
                   Terms & Conditions
-                </a>
+                </span>
               </p>
             </div>
             <button
@@ -292,6 +304,14 @@ const Register = () => {
           </Swiper>
         </div>
       </div>
+
+      {/* Terms and Conditions Modal */}
+      {showTerms && (
+        <TermsAndConditions
+          onAgree={handleAgreeTerms}
+          onDecline={handleDeclineTerms}
+        />
+      )}
     </div>
   );
 };
