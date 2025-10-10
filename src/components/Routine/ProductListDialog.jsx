@@ -72,9 +72,54 @@ const ProductListDialog = ({ open, onClose, onSelectProduct }) => {
 
   console.log("👀 Filtered products to display:", filteredProducts.length);
 
-  const handleProductClick = (product) => {
-    onSelectProduct(product);
-    onClose();
+  const handleProductClick = async (product) => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("No user logged in");
+        onSelectProduct(product);
+        onClose();
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("user_saved_products")
+        .select(
+          `
+        product_id,
+        face_products_view:product_id(*),
+        v_body_products:product_id(*)
+      `
+        )
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching product usage:", error);
+        onSelectProduct(product);
+        onClose();
+        return;
+      }
+
+      // Get product info from the proper view
+      const viewData = data.face_products_view || data.v_body_products || {};
+
+      // Merge usage into product object
+      const updatedProduct = {
+        ...product,
+        usage: viewData.usage || product.usage || "-",
+      };
+
+      onSelectProduct(updatedProduct);
+      onClose();
+    } catch (err) {
+      console.error("Unexpected error fetching usage:", err);
+      onSelectProduct(product);
+      onClose();
+    }
   };
 
   if (!open) return null;

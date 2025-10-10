@@ -126,10 +126,13 @@ export const fetchUserSavedProductIds = async (userId, area) => {
  */
 
 export const formatFaceProduct = (item) => {
-  // Accepts either direct product or nested product data
-  const p = item.face_products_view || item.products || item || {};
+  const p =
+    item.face_products_view ||
+    item.v_body_products ||
+    item.products ||
+    item ||
+    {};
 
-  // Helper to always return an array for fields that may be string/array/undefined
   const asArray = (field) => {
     if (!field) return [];
     if (Array.isArray(field)) return field;
@@ -143,18 +146,18 @@ export const formatFaceProduct = (item) => {
 
   return {
     id: p.product_id || p.id || "",
-    type: (p.product_type || p.type || "").toString().toLowerCase(),
     name: p.product_name || p.name || "",
-    description: p.description || "",
-    severity: (p.severity || "").toString().toLowerCase(),
-    area: (p.area || "face").toString().toLowerCase(),
-    image: p.image || "",
-    ingredients: asArray(p.ingredients),
-    skinType: (p.skintype || p.skinType || "").toString().toLowerCase(),
-    impurity: (p.impurity || "").toString().toLowerCase(),
-    cautions: asArray(p.cautions),
-    usage: p.usage || "",
     brand: p.brand || "",
+    type: (p.product_type || p.type || "").toLowerCase(),
+    description: p.description || "",
+    usage: p.usage || "", // ✅ always included
+    area: (p.area || "face").toLowerCase(),
+    skinType: (p.skintype || p.skinType || "").toLowerCase(),
+    severity: (p.severity || "").toLowerCase(),
+    ingredients: asArray(p.ingredients),
+    cautions: asArray(p.cautions),
+    impurity: (p.impurity || "").toLowerCase(),
+    image: p.image || "",
     createdAt:
       p.created_at ||
       item.created_at ||
@@ -167,21 +170,37 @@ export const formatFaceProduct = (item) => {
 
 // Main fetch function for saved products
 export const fetchSavedProducts = async (userId) => {
-  const { data, error } = await supabase
-    .from("user_saved_products")
-    .select(
+  try {
+    const { data, error } = await supabase
+      .from("user_saved_products")
+      .select(
+        `
+        product_id,
+        saved_at,
+        products:product_id (*),
+        face_products_view:product_id (*),
+        v_body_products:product_id (*)
       `
-      product_id,
-      saved_at,
-      products:product_id (*),
-      face_products_view:product_id (*)
-    `
-    )
-    .eq("user_id", userId);
+      )
+      .eq("user_id", userId);
 
-  if (error) throw error;
+    console.log("Fetched data:", data);
 
-  return (data || [])
-    .filter((item) => item.face_products_view || item.products)
-    .map(formatFaceProduct);
+    if (error) throw error;
+
+    // Map through all and find the right source (face/body)
+    return (data || [])
+      .map((item) => {
+        const productData =
+          item.face_products_view ||
+          item.v_body_products ||
+          item.products ||
+          {};
+        return formatFaceProduct(productData);
+      })
+      .filter((p) => p && p.id);
+  } catch (err) {
+    console.error("Error fetching saved products:", err);
+    return [];
+  }
 };

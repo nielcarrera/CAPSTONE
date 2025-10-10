@@ -34,38 +34,46 @@ const formatSupabaseImageUrl = (imagePath) => {
  */
 
 export const fetchFaceProductToProductRoutines = async (userId) => {
-  const { data, error } = await supabase
-    .from("user_saved_products")
-    .select(
+  try {
+    const { data, error } = await supabase
+      .from("user_saved_products")
+      .select(
+        `
+        product_id,
+        saved_at,
+        face_products_view:product_id (*),
+        v_body_products:product_id (*)
       `
-      product_id,
-      saved_at,
-      face_products_view:product_id (*)
-    `
-    )
-    .eq("user_id", userId);
+      )
+      .eq("user_id", userId);
 
-  if (error) {
-    console.error("Error fetching routine products:", error);
+    if (error) {
+      console.error("❌ Error fetching routine products:", error);
+      return [];
+    }
+
+    // 🧠 Combine both possible sources (face or body)
+    return (data || [])
+      .map((item) => {
+        // pick which source has data
+        const productData =
+          item.face_products_view || item.v_body_products || null;
+        if (!productData) return null;
+
+        // format product (includes usage)
+        const formatted = formatFaceProduct(productData);
+
+        return {
+          ...formatted,
+          image: formatSupabaseImageUrl(formatted.image),
+        };
+      })
+      .filter(Boolean); // remove nulls
+  } catch (err) {
+    console.error(
+      "❌ Unexpected error in fetchFaceProductToProductRoutines:",
+      err
+    );
     return [];
   }
-
-  return (data || [])
-    .filter((item) => item.face_products_view)
-    .map((item) => {
-      // 👇 this is the fix
-      const product = formatFaceProduct(item.face_products_view);
-
-      // 👇 add logs here
-      console.log("Raw product image from DB:", item.face_products_view.image);
-      console.log(
-        "Final product image URL:",
-        formatSupabaseImageUrl(product.image)
-      );
-
-      return {
-        ...product,
-        image: formatSupabaseImageUrl(product.image), // ✅ converted URL
-      };
-    });
 };

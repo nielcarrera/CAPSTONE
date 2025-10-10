@@ -239,20 +239,8 @@ const Login = () => {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-600"></div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-gray-800 text-gray-400">
-                    Or continue with
-                  </span>
-                </div>
+                <div className="relative flex justify-center text-sm"></div>
               </div>
-              <button
-                onClick={signUp}
-                type="button"
-                className="flex items-center justify-center gap-2 p-3 border border-gray-600 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
-              >
-                <img src={google} alt="Google" className="w-5 h-5" />
-                <span>Sign in with Google</span>
-              </button>
             </form>
           </div>
 

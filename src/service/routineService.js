@@ -30,7 +30,6 @@ export async function fetchUserRoutines(userId) {
     const { data, error } = await supabase.rpc("get_routines_by_owner", {
       p_owner: userId,
     });
-
     if (error) throw error;
     return data;
   } catch (error) {
@@ -52,22 +51,17 @@ export async function updateRoutine(routineData, userId) {
     routineData.id
   );
 
-  const { data, error } = await supabase.rpc(
-    "update_routine_with_steps", // your RPC name for update
-    {
-      p_routine_id: routineData.id, // Routine's ID to update
-      p_routine_owner: userId,
-      p_routine_name: routineData.name,
-      p_type: routineData.type,
-      p_time: routineData.time,
-      p_duration: routineData.duration,
-      p_steps: routineData.steps, // Array of steps
-    }
-  );
+  const { data, error } = await supabase.rpc("update_routine_with_steps", {
+    p_routine_id: routineData.id,
+    p_routine_name: routineData.name,
+    p_type: routineData.type,
+    p_time: routineData.time,
+    p_duration: routineData.duration,
+    p_steps: routineData.steps,
+  });
 
-  if (error) {
+  if (error)
     throw new Error("Failed to update routine via RPC: " + error.message);
-  }
 
   console.log("✅ Updated routine with ID:", data);
   return data;
@@ -80,10 +74,10 @@ export async function deleteRoutine(routineId, userId) {
     throw new Error("Routine ID is missing. Cannot delete routine.");
 
   const { error } = await supabase
-    .from("routines")
+    .from("routine") // ✅ Correct table name
     .delete()
-    .eq("routine_id", routineId)
-    .eq("routine_owner", userId);
+    .eq("id", routineId) // ✅ Match your actual column name
+    .eq("routine_owner", userId); // optional if your table includes it
 
   if (error) {
     throw new Error("Failed to delete routine: " + error.message);

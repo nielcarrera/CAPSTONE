@@ -1,31 +1,10 @@
 // src/data/skinTypesData.js
-import combi from "../../assets/combi.webp";
-import normal from "../../assets/normal.jpg";
-import dry from "../../assets/dry.jpg";
-import oily from "../../assets/oily.jpg";
-import sensitive from "../../assets/sensitive.webp";
+import normal from "../../assets/normalskin.jpg";
+import dry from "../../assets/dryskin.jpg";
+import oily from "../../assets/oilyskin.jpg";
+import sensitive from "../../assets/sensitiveskin.jpg";
 
 export const skinTypes = [
-  {
-    id: "Combination",
-    type: "Combination",
-    description:
-      "Your skin can be dry or normal in some areas and oily in others, such as the T-zone (nose, forehead, and chin). Many people have this type. It may need slightly different care in different areas.",
-    imageUrl: [combi], // Make sure to import combi or use the correct path
-    characteristics: [
-      "Oily T-zone (forehead, chin and nose)",
-      "Enlarged pores",
-      "Blackheads",
-      "Shiny skin",
-    ],
-    causes: [
-      "Hormonal changes, such as those that occur during puberty or menstruation",
-      "Mainly Genetics",
-    ],
-    generaltips: [
-      "Use a lightweight moisturizer for hydration and a targeted treatment (like a serum or exfoliant) for the oily areas",
-    ],
-  },
   {
     id: "Oily",
     type: "Oily",

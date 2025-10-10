@@ -68,9 +68,11 @@ const RoutinesPage = () => {
           stepNumber: step.step_number,
           product: step.product_name,
           productId: step.product_id,
-          note: step.note,
-          id: step.step_number || index, // Use a reliable ID for the key
+          usage: step.usage,
+          type: step.product_type, // ✅ Add this
+          id: step.step_number || index,
         })),
+
         notificationEnabled: true,
       }));
 
@@ -226,7 +228,7 @@ const RoutinesPage = () => {
                                 Area
                               </th>
                               <th className="py-3 px-4 font-medium border-l border-cyan-700">
-                                Note
+                                Usage
                               </th>
                             </tr>
                           </thead>
@@ -257,7 +259,7 @@ const RoutinesPage = () => {
                                   </td>
                                   <td className="py-3 px-4 border-l border-gray-200">
                                     <span className="inline-block px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-700 capitalize">
-                                      {productDetails.type || "Unknown"}
+                                      {step.type || "Unknown"}
                                     </span>
                                   </td>
                                   <td className="py-3 px-4 border-l border-gray-200">
@@ -268,7 +270,7 @@ const RoutinesPage = () => {
                                     </span>
                                   </td>
                                   <td className="py-3 px-4 text-gray-600 text-sm border-l border-gray-200">
-                                    {step.note || "-"}
+                                    {step.usage || "-"}
                                   </td>
                                 </tr>
                               );

@@ -3,16 +3,11 @@ import blackheads from "../../assets/blackheads.jpg";
 import whiteheads from "../../assets/whiteheads.jpg";
 import acne from "../../assets/acne.jpg";
 import pores from "../../assets/pores.webp";
-import redness from "../../assets/redness.webp";
+import redness from "../../assets/redness.jpg";
 import wrinkles from "../../assets/wrinkles.jpg";
 import darkcircles from "../../assets/darkcircles.jpg";
 
 export const skinIssues = {
-  Whiteheads: {
-    image: whiteheads,
-    description:
-      "Small, white bumps that appear when pores become clogged with oil and dead skin cells.",
-  },
   Pores: {
     image: pores,
     description: "Enlarged pores that can become clogged and more visible.",
@@ -42,17 +37,6 @@ export const skinIssues = {
 };
 
 export const skinIssueDetails = {
-  Whiteheads: {
-    cause: "Clogged pores from excess oil, dead skin cells, and makeup.",
-    prevention:
-      "Use non-comedogenic products, cleanse gently, exfoliate regularly.",
-    references: [
-      {
-        source: "Cleveland Clinic – Whiteheads causes & treatment",
-        url: "https://my.clevelandclinic.org/health/diseases/22039-whiteheads",
-      },
-    ],
-  },
   Pores: {
     cause: "Genetics, excess sebum, sun damage, and aging.",
     prevention:

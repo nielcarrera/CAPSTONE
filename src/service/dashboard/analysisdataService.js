@@ -9,8 +9,6 @@ import {
 
 // List all impurities you care about (same as in your dummy structure)
 const ALL_IMPURITIES = [
-  "Whiteheads",
-
   "Redness",
   "Acne",
   "Blackheads",
