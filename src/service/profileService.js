@@ -1,6 +1,6 @@
-import { supabase } from "../supabaseClient";
+import { supabase } from "../supabase";
 import { fetchUserSkinType } from "./skintypeService";
-import { fetchRecentProducts } from "./landingpageService";
+import { fetchRecentProducts } from "./productService";
 
 export const fetchUserProfile = async (userId) => {
   try {
@@ -86,6 +86,45 @@ export const uploadProfileImage = async (userId, file) => {
     return publicUrl;
   } catch (error) {
     console.error("Error uploading profile image:", error);
+    throw error;
+  }
+};
+
+export const fetchUserSummary = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .rpc("get_user_summary", { p_user_id: userId })
+      .single(); // Use .single() as we expect one result
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching user summary:", error);
+    throw error;
+  }
+};
+
+export const updateUserDetails = async (userId, profileData) => {
+  try {
+    // Call the RPC function with the required parameters
+    const { error } = await supabase.rpc("update_user_details", {
+      p_user_id: userId,
+      p_full_name: profileData.fullName,
+      p_age: profileData.age,
+      p_gender: profileData.gender,
+    });
+
+    if (error) {
+      // If the RPC call returns an error, throw it
+      throw error;
+    }
+
+    // If there's no error, the operation was successful
+    return true;
+  } catch (error) {
+    console.error("Error updating user details via RPC:", error.message);
+    // Re-throw the error to be handled by the calling component
     throw error;
   }
 };

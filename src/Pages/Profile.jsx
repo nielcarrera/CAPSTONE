@@ -23,18 +23,14 @@ import { toast } from "react-toastify";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabaseClient";
-import { fetchUserSkinType } from "../service/skintypeService";
-import { fetchUserSavedProducts } from "../service/productService";
+import { fetchUserSummary, updateUserDetails } from "../service/profileService";
 
 // Import the modal components
 import AboutUsModal from "../components/Profile/Aboutus";
 import FaqsModal from "../components/Profile/Faqs";
 import TermsAndPolicyModal from "../components/Profile/TermsandCondition";
 
-const mockProducts = [];
-const mockRoutines = [];
-
-// --- Reusable Sub-components ---
+// --- Reusable Sub-components (No Changes) ---
 const StatItem = ({ icon: Icon, value, label }) => (
   <div className="flex flex-col items-center gap-3 text-center p-4 bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200">
     <div className="p-3 bg-cyan-50 rounded-full">
@@ -113,9 +109,10 @@ const Profile = () => {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [profileData, setProfileData] = useState({});
-  const [userProducts, setUserProducts] = useState(mockProducts);
-  const [routines, setRoutines] = useState(mockRoutines);
+  const [profileData, setProfileData] = useState({
+    totalRoutines: 0,
+    totalSavedProducts: 0,
+  });
   const [originalProfileData, setOriginalProfileData] = useState({});
 
   // State for modals
@@ -136,36 +133,30 @@ const Profile = () => {
 
         const userId = session.user.id;
 
-        const { data: userDetails, error: detailsError } = await supabase
-          .from("user_details")
-          .select("first_name, last_name, age, gender")
-          .eq("id", userId)
-          .single();
-        if (detailsError) throw detailsError;
-
-        const skinTypeData = await fetchUserSkinType(userId);
-        const savedProducts = await fetchUserSavedProducts(userId);
+        const summaryData = await fetchUserSummary(userId);
+        if (!summaryData) throw new Error("Could not fetch user summary.");
 
         const fetchedData = {
-          firstName: userDetails.first_name || "",
-          lastName: userDetails.last_name || "",
-          age: userDetails.age || "",
-          gender: userDetails.gender || "Not set",
-          email: session.user.email || "",
+          firstName: summaryData.first_name || "",
+          lastName: summaryData.last_name || "",
+          age: summaryData.age || "",
+          gender: summaryData.gender || "Not set",
+          email: summaryData.email || "",
           avatar:
             session.user.user_metadata.avatar_url ||
             `https://i.pravatar.cc/150?u=${userId}`,
-          skinType: skinTypeData?.skintype || "Unknown",
+          skinType: summaryData.recent_skintype || "Unknown",
+          totalSavedProducts: summaryData.total_saved_products || 0,
+          totalRoutines: summaryData.total_routines || 0,
         };
 
         setProfileData(fetchedData);
         setOriginalProfileData(fetchedData);
-        setUserProducts(savedProducts);
       } catch (error) {
         console.error("Error fetching profile:", error.message);
         toast.error("Could not load profile data.");
-        setProfileData(mockUser);
-        setOriginalProfileData(mockUser);
+        setProfileData({ totalRoutines: 0, totalSavedProducts: 0 });
+        setOriginalProfileData({ totalRoutines: 0, totalSavedProducts: 0 });
       } finally {
         setLoading(false);
       }
@@ -185,6 +176,7 @@ const Profile = () => {
     setEditing(!editing);
   };
 
+  // --- REFACTORED SAVE FUNCTION ---
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -193,20 +185,20 @@ const Profile = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
 
-      const updates = {
-        id: user.id,
-        first_name: profileData.firstName,
-        last_name: profileData.lastName,
+      // NEW: Combine first and last name for the RPC function
+      const fullName = `${profileData.firstName} ${
+        profileData.lastName || ""
+      }`.trim();
+
+      // CHANGED: Call the new updateUserDetails RPC service function
+      await updateUserDetails(user.id, {
+        fullName: fullName,
         age: profileData.age,
         gender: profileData.gender,
-        updated_at: new Date(),
-      };
-
-      const { error } = await supabase.from("user_details").upsert(updates);
-      if (error) throw error;
+      });
 
       setEditing(false);
-      setOriginalProfileData(profileData);
+      setOriginalProfileData(profileData); // Update the backup copy with saved data
       toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Error saving profile:", error.message);
@@ -233,7 +225,6 @@ const Profile = () => {
     <>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800">
         <Sidebar />
-
         <main className="lg:ml-64 pt-5 pb-8">
           <div className="max-w-6xl mx-auto px-6">
             {/* Header Section */}
@@ -264,10 +255,10 @@ const Profile = () => {
                       {profileData.skinType || "N/A"} Skin
                     </div>
                     <div className="px-4 py-2 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
-                      {userProducts.length} Products
+                      {profileData.totalSavedProducts} Products
                     </div>
                     <div className="px-4 py-2 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
-                      {routines.length} Routines
+                      {profileData.totalRoutines} Routines
                     </div>
                   </div>
                 </div>
@@ -322,12 +313,12 @@ const Profile = () => {
                     />
                     <StatItem
                       icon={Package}
-                      value={userProducts.length}
+                      value={profileData.totalSavedProducts}
                       label="Saved Products"
                     />
                     <StatItem
                       icon={ListChecks}
-                      value={routines.length}
+                      value={profileData.totalRoutines}
                       label="Active Routines"
                     />
                   </div>
@@ -348,7 +339,9 @@ const Profile = () => {
                     <InfoField
                       icon={User}
                       label="Full Name"
-                      value={`${profileData.firstName} ${profileData.lastName}`}
+                      value={`${profileData.firstName} ${
+                        profileData.lastName || ""
+                      }`}
                       editing={editing}
                       onChange={(e) => {
                         const [first, ...last] = e.target.value.split(" ");
@@ -384,7 +377,7 @@ const Profile = () => {
                   </div>
 
                   {editing && (
-                    <div className="flex gap-4  pt-8 border-t border-gray-200">
+                    <div className="flex gap-4 pt-8 mt-6 border-t border-gray-200">
                       <button
                         onClick={() => {
                           setEditing(false);
@@ -408,7 +401,6 @@ const Profile = () => {
 
               {/* Right Column - Settings & Information */}
               <div className="space-y-8">
-                {/* Settings */}
                 <section className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
                   <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
                     <div className="p-2 bg-cyan-100 rounded-lg">
@@ -425,7 +417,6 @@ const Profile = () => {
                   </div>
                 </section>
 
-                {/* More Information */}
                 <section className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
                   <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
                     <div className="p-2 bg-cyan-100 rounded-lg">

@@ -57,6 +57,7 @@ const RoutinesPage = () => {
 
     try {
       const savedRoutines = await fetchUserRoutines(user.id);
+      console.log("Fetched routines:", savedRoutines);
 
       const mappedRoutines = savedRoutines.map((r) => ({
         id: r.routine_id,
