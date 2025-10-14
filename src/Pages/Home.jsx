@@ -181,7 +181,10 @@ const Home = () => {
               unique needs. Save and organize your favorite products to build an
               effective, personalized routine.
             </p>
-            <button className="bg-cyan-800 text-white px-8 py-3 font-semibold rounded-lg hover:bg-cyan-800 transition-colors">
+            <button
+              onClick={() => navigate("/login")}
+              className="bg-cyan-800 text-white px-8 py-3 font-semibold rounded-lg hover:bg-cyan-800 transition-colors"
+            >
               Browse Products
             </button>
           </div>

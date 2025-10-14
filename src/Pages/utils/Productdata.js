@@ -94,25 +94,15 @@ export const products = [
 
 export const skinImpurities = [
   "all",
-  "pores",
+
   "redness",
   "wrinkles",
   "blackheads",
   "darkcircles",
   "acne",
-  "oil",
-  "freckles",
-  "whiteheads",
 ];
 
-export const skinTypes = [
-  "all",
-  "normal",
-  "oily",
-  "dry",
-  "combination",
-  "sensitive",
-];
+export const skinTypes = ["all", "normal", "oily", "dry", "sensitive"];
 
 export const sortOptions = [
   { value: "name-asc", label: "Name (A-Z)" },

@@ -18,17 +18,7 @@ const productTypes = [
   "treatment",
 ];
 const severityTypes = ["all", "mild", "moderate", "severe"];
-const bodyParts = [
-  "all",
-  "arm",
-  "back",
-  "neck",
-  "legs",
-  "feet",
-  "back",
-  "abdomen",
-  "hands",
-];
+
 const dateRanges = [
   { value: "all", label: "All Dates" },
   { value: "week", label: "Last Week" },
@@ -152,27 +142,6 @@ export const ProductFilters = ({ filters, onFilterChange }) => {
           ))}
         </div>
       </div>
-
-      {filters.area === "body" && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">Body Part:</p>
-          <div className="flex flex-wrap gap-2">
-            {bodyParts.map((part) => (
-              <button
-                key={part}
-                onClick={() => onFilterChange("bodyPart", part)}
-                className={`px-4 py-2 rounded-full text-sm border ${
-                  filters.bodyPart === part
-                    ? "bg-cyan-800 text-white border-cyan-800"
-                    : "bg-white text-gray-700 border-gray-300"
-                }`}
-              >
-                {part === "all" ? "All Body Parts" : capitalize(part)}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {filters.area === "face" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
