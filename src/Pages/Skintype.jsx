@@ -11,6 +11,7 @@ import {
   getSkinTypeDetails,
 } from "../service/skintypeService";
 import { supabase } from "../lib/supabaseClient";
+import dark from "../assets/dark.jpg";
 
 // Dummy data for skin tones
 const skinTones = [
@@ -35,7 +36,7 @@ const skinTones = [
       "Avoid over-exfoliation (limit AHAs/BHAs to 1–2x weekly)",
       "Test actives (like vitamin C or retinol) before use — irritation risk is high",
     ],
-    imageUrl: "assets/images/skintone_fair.jpg",
+    imageUrl: dark,
   },
   {
     id: "light",
@@ -514,9 +515,9 @@ const SkinToneDetails = ({ skinTone, navigate }) => (
         {/* Left Column - Image */}
         <div className="space-y-6">
           <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
-            {skinTone.imageUrl?.length > 0 && (
+            {skinTone.imageUrl && (
               <img
-                src={skinTone.imageUrl[0]}
+                src={skinTone.imageUrl}
                 alt={`${skinTone.type} skin tone`}
                 className="w-full h-full object-cover"
               />
