@@ -12,6 +12,8 @@ import {
 } from "../service/skintypeService";
 import { supabase } from "../lib/supabaseClient";
 import dark from "../assets/dark.jpg";
+import light from "../assets/light.jpg";
+import fair from "../assets/fair.jpg";
 
 // Dummy data for skin tones
 const skinTones = [
@@ -36,7 +38,7 @@ const skinTones = [
       "Avoid over-exfoliation (limit AHAs/BHAs to 1–2x weekly)",
       "Test actives (like vitamin C or retinol) before use — irritation risk is high",
     ],
-    imageUrl: dark,
+    imageUrl: fair,
   },
   {
     id: "light",
@@ -59,7 +61,7 @@ const skinTones = [
       "Avoid overuse of strong actives (like high % acids)",
       "Ensure consistent sunscreen even on cloudy days",
     ],
-    imageUrl: "assets/images/skintone_light.jpg",
+    imageUrl: light,
   },
   {
     id: "dark",
@@ -83,7 +85,7 @@ const skinTones = [
       "Be cautious with laser or bleaching treatments",
       "Use actives gradually to avoid irritation-based darkening",
     ],
-    imageUrl: "assets/dark.jpg",
+    imageUrl: dark,
   },
 ];
 
@@ -238,27 +240,6 @@ const ST = () => {
           )}
 
           {/* Mobile App Promotion */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-gradient-to-r from-cyan-800 to-gray-800 py-7 px-20 rounded-2xl shadow-sm border border-purple-200 cursor-pointer"
-            onClick={() => navigate("/download")}
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white rounded-full">
-                <Smartphone className="w-6 h-6 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-300">
-                  Identify Your Skin Type
-                </h3>
-                <p className="text-gray-300">
-                  Use our mobile app for real-time skin analysis with your
-                  phone's camera
-                </p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </div>
-          </motion.div>
 
           {/* Tab Navigation */}
           <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
@@ -546,24 +527,6 @@ const SkinToneDetails = ({ skinTone, navigate }) => (
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-10 mt-8">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate("/products")}
-          className="flex-1 px-3 py-5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
-        >
-          Find Recommended Products
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate("/download")}
-          className="flex-1 px-3 py-5 bg-cyan-800 text-white rounded-xl hover:bg-cyan-700 transition-colors"
-        >
-          Get Personalized Analysis
-        </motion.button>
-      </div>
     </div>
   </>
 );
