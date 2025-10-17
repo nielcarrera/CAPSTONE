@@ -20,6 +20,7 @@ const Login = () => {
   const [session, setSession] = useState(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const goToRegister = () => navigate("/register");
@@ -209,14 +210,24 @@ const Login = () => {
                 required
                 className="p-2.5 border rounded bg-gray-700 text-white text-sm"
               />
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="p-2.5 border rounded bg-gray-700 text-white text-sm"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="p-2.5 border rounded bg-gray-700 text-white text-sm w-full pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <input
