@@ -43,7 +43,7 @@ const Sidebar = ({ className }) => {
         { label: "Body", path: "/body" },
       ],
     },
-    { icon: User, label: "My Skin Type", path: "/skintype" },
+    { icon: User, label: "My Skin Profile", path: "/skintype" },
     { icon: Recycle, label: "My Routines", path: "/routine" },
     { icon: PillBottle, label: "My Products", path: "/product" },
     { section: "Preferences" },
