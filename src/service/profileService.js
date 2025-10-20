@@ -65,31 +65,49 @@ export const updateUserProfile = async (userId, profileData) => {
   }
 };
 
-export const uploadProfileImage = async (userId, file) => {
+export const uploadUserAvatar = async (userId, file) => {
+  if (!userId || !file) throw new Error("Missing userId or file");
+
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${userId}-${Date.now()}.${fileExt}`;
+  const filePath = `avatars/${fileName}`;
+
   try {
-    const fileName = `avatar-${userId}-${Date.now()}`;
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${fileName}.${fileExt}`;
+    console.log("🟡 Uploading avatar for user:", userId);
+    console.log("📁 File details:", file);
+    // Upload file
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("profile_images") // bucket name
+      .upload(filePath, file, { upsert: true });
 
-    // Upload the file to Supabase storage
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, file);
+    if (uploadError) {
+      console.error("Supabase upload error:", uploadError);
+      throw new Error(
+        `Upload failed: ${uploadError.message || "Unknown error"}`
+      );
+    }
 
-    if (uploadError) throw uploadError;
+    // Get public URL (works for public buckets)
+    const { data: publicData, error: urlError } = supabase.storage
+      .from("profile_images")
+      .getPublicUrl(filePath);
 
-    // Get the public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("avatars").getPublicUrl(filePath);
+    if (urlError) {
+      console.error("Supabase URL error:", urlError);
+      throw new Error(
+        `Failed to get public URL: ${urlError.message || "Unknown error"}`
+      );
+    }
 
-    return publicUrl;
-  } catch (error) {
-    console.error("Error uploading profile image:", error);
-    throw error;
+    if (!publicData?.publicUrl)
+      throw new Error("Failed to get public URL from Supabase");
+
+    return publicData.publicUrl;
+  } catch (err) {
+    console.error("Error uploading avatar:", err);
+    throw err;
   }
 };
-
 export const fetchUserSummary = async (userId) => {
   try {
     const { data, error } = await supabase
@@ -107,24 +125,20 @@ export const fetchUserSummary = async (userId) => {
 
 export const updateUserDetails = async (userId, profileData) => {
   try {
-    // Call the RPC function with the required parameters
-    const { error } = await supabase.rpc("update_user_details", {
-      p_user_id: userId,
-      p_full_name: profileData.fullName,
-      p_age: profileData.age,
-      p_gender: profileData.gender,
-    });
+    const { error } = await supabase
+      .from("user_details")
+      .update({
+        first_name: profileData.firstName || null,
+        last_name: profileData.lastName || null,
+        age: profileData.age || null,
+        gender: profileData.gender || null,
+      })
+      .eq("id", userId);
 
-    if (error) {
-      // If the RPC call returns an error, throw it
-      throw error;
-    }
-
-    // If there's no error, the operation was successful
+    if (error) throw error;
     return true;
   } catch (error) {
-    console.error("Error updating user details via RPC:", error.message);
-    // Re-throw the error to be handled by the calling component
+    console.error("Error updating user details:", error.message);
     throw error;
   }
 };

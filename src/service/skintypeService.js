@@ -2,11 +2,8 @@
 import { supabase } from "../lib/supabaseClient";
 import { skinTypes } from "../Pages/utils/SkintypesData";
 
-/**
- * Fetches the most recent skin type for a user
- * @param {string} userId
- * @returns {Promise<{id: string, user_id: string, skintype: string, created_at: string}|null>}
- */
+// --------------------- Skin Type ---------------------
+
 export const fetchUserSkinType = async (userId) => {
   try {
     const { data, error } = await supabase
@@ -25,12 +22,6 @@ export const fetchUserSkinType = async (userId) => {
   }
 };
 
-/**
- * Creates or updates a skin type record for a user
- * @param {string} userId
- * @param {string} skinTypeId
- * @returns {Promise<{id: string, user_id: string, skintype: string, created_at: string}>}
- */
 export const saveUserSkinType = async (userId, skinTypeId) => {
   try {
     const skinTypeExists = skinTypes.some((type) => type.id === skinTypeId);
@@ -57,21 +48,96 @@ export const saveUserSkinType = async (userId, skinTypeId) => {
   }
 };
 
-/**
- * Gets complete skin type details by ID
- * @param {string} skinTypeId
- * @param {string} [lastChecked]
- * @returns {{
- *   id: string,
- *   type: string,
- *   description: string,
- *   imageUrl: string[],
- *   characteristics: string[],
- *   causes: string[],
- *   generaltips: string[],
- *   lastChecked?: string
- * }}
- */
+// --------------------- Skin Tone ---------------------
+
+// --------------------- Skin Tone ---------------------
+
+export const fetchSkinToneData = async (userId = null) => {
+  try {
+    // ✅ get user ID directly if not passed
+    if (!userId) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("User not authenticated");
+      userId = user.id;
+    }
+
+    const { data, error } = await supabase
+      .from("user_skintone")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    console.log("🐛 Skin Tone Response:", data);
+
+    return data || null;
+  } catch (error) {
+    console.error("Error fetching skin tone:", error);
+    return null;
+  }
+};
+
+export const updateUserSkinTone = async (newTone) => {
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) throw new Error("User not authenticated");
+
+    const userId = user.id;
+
+    // ✅ Convert to match enum case
+    const formattedTone =
+      newTone.charAt(0).toUpperCase() + newTone.slice(1).toLowerCase();
+
+    const { data: existing } = await supabase
+      .from("user_skintone")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    let result;
+
+    if (existing) {
+      // ✅ Update
+      result = await supabase
+        .from("user_skintone")
+        .update({ skintone: formattedTone })
+        .eq("user_id", userId)
+        .select();
+    } else {
+      // ✅ Insert
+      result = await supabase
+        .from("user_skintone")
+        .insert([{ user_id: userId, skintone: formattedTone }])
+        .select();
+    }
+
+    if (result.error) throw result.error;
+
+    return {
+      status: "success",
+      message: "Skin tone updated successfully!",
+    };
+  } catch (error) {
+    console.error("Error updating skin tone:", error);
+    return {
+      status: "error",
+      message: `Error updating skin tone: ${error.message}`,
+    };
+  }
+};
+
+// --------------------- Helper ---------------------
+
 export const getSkinTypeDetails = (skinTypeId, lastChecked) => {
   const skinType = skinTypes.find((type) => type.id === skinTypeId);
 

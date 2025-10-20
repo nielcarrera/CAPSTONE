@@ -9,7 +9,10 @@ import {
   fetchUserSkinType,
   saveUserSkinType,
   getSkinTypeDetails,
+  fetchSkinToneData,
+  updateUserSkinTone,
 } from "../service/skintypeService";
+
 import { supabase } from "../lib/supabaseClient";
 import dark from "../assets/dark.jpg";
 import light from "../assets/light.jpg";
@@ -127,8 +130,24 @@ const ST = () => {
           setSelectedType(skinTypeRecord.skintype);
 
           // For demo - in real app, you'd fetch this from your database
-          setCurrentSkinTone(skinTones[0]);
-          setSelectedTone(skinTones[0].id);
+          const skinToneRecord = await fetchSkinToneData(user.id);
+
+          if (skinToneRecord) {
+            const toneDetails = skinTones.find(
+              (tone) =>
+                tone.id.toLowerCase() === skinToneRecord.skintone.toLowerCase()
+            );
+            if (toneDetails) {
+              setCurrentSkinTone(toneDetails);
+              setSelectedTone(toneDetails.id);
+            } else {
+              setCurrentSkinTone(null);
+              setSelectedTone(skinTones[0].id);
+            }
+          } else {
+            setCurrentSkinTone(null);
+            setSelectedTone(skinTones[0].id);
+          }
         }
       } catch (error) {
         console.error("Error loading skin data:", error);
@@ -182,12 +201,25 @@ const ST = () => {
 
     try {
       // In a real app, you'd save this to your database
-      const selectedToneData = skinTones.find(
-        (tone) => tone.id === selectedTone
-      );
-      setCurrentSkinTone(selectedToneData);
-      setShowDialog(true);
-      setTimeout(() => setShowDialog(false), 3000);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+
+      const response = await updateUserSkinTone(selectedTone);
+
+      if (response.status === "success") {
+        const updatedTone = skinTones.find((tone) => tone.id === selectedTone);
+        setCurrentSkinTone(updatedTone);
+        setShowDialog(true);
+        setTimeout(() => setShowDialog(false), 3000);
+      } else {
+        setError(response.message);
+      }
     } catch (error) {
       console.error("Error saving skin tone:", error);
       setError("Failed to save skin tone. Please try again.");

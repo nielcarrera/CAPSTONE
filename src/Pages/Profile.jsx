@@ -23,7 +23,11 @@ import { toast } from "react-toastify";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabaseClient";
-import { fetchUserSummary, updateUserDetails } from "../service/profileService";
+import {
+  fetchUserSummary,
+  updateUserDetails,
+  uploadUserAvatar,
+} from "../service/profileService";
 
 // Import the modal components
 import AboutUsModal from "../components/Profile/Aboutus";
@@ -185,20 +189,15 @@ const Profile = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
 
-      // NEW: Combine first and last name for the RPC function
-      const fullName = `${profileData.firstName} ${
-        profileData.lastName || ""
-      }`.trim();
-
-      // CHANGED: Call the new updateUserDetails RPC service function
       await updateUserDetails(user.id, {
-        fullName: fullName,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
         age: profileData.age,
         gender: profileData.gender,
       });
 
       setEditing(false);
-      setOriginalProfileData(profileData); // Update the backup copy with saved data
+      setOriginalProfileData(profileData);
       toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Error saving profile:", error.message);
@@ -237,9 +236,60 @@ const Profile = () => {
                       alt="Profile Avatar"
                       className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-lg"
                     />
-                    <button className="absolute bottom-2 right-2 bg-cyan-700 p-3 rounded-xl text-white hover:bg-cyan-800 transition-all duration-200 shadow-lg hover:shadow-xl">
+                    <label
+                      htmlFor="avatarUpload"
+                      className="absolute bottom-2 right-2 bg-cyan-700 p-3 rounded-xl text-white hover:bg-cyan-800 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
+                    >
                       <Camera className="w-5 h-5" />
-                    </button>
+                      <input
+                        id="avatarUpload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+
+                          try {
+                            toast.info("Uploading image...");
+
+                            const {
+                              data: { user },
+                              error: userError,
+                            } = await supabase.auth.getUser();
+                            if (userError || !user)
+                              throw new Error("No user logged in");
+
+                            const imageUrl = await uploadUserAvatar(
+                              user.id,
+                              file
+                            );
+
+                            // Update user metadata
+                            const { error: updateError } =
+                              await supabase.auth.updateUser({
+                                data: { avatar_url: imageUrl },
+                              });
+                            if (updateError) throw updateError;
+
+                            // Update UI immediately
+                            setProfileData((prev) => ({
+                              ...prev,
+                              avatar: imageUrl,
+                            }));
+
+                            toast.success("Profile image updated!");
+                          } catch (err) {
+                            console.error("Avatar upload failed:", err);
+                            toast.error(
+                              "Failed to upload image. Check console for details."
+                            );
+                          } finally {
+                            e.target.value = null; // reset input
+                          }
+                        }}
+                      />
+                    </label>
                   </div>
                 </div>
 

@@ -35,15 +35,17 @@ const Register = () => {
   const [errors, setErrors] = useState({});
 
   const validatePassword = (pwd) => {
+    // must be at least 8 characters, have at least one uppercase, one lowercase letter, and one number
     const minLength = /.{8,}/;
     const upper = /[A-Z]/;
+    const lower = /[a-z]/;
     const number = /[0-9]/;
-    const nonNumber = /[a-zA-Z]/;
+
     return (
       minLength.test(pwd) &&
       upper.test(pwd) &&
-      number.test(pwd) &&
-      nonNumber.test(pwd)
+      lower.test(pwd) &&
+      number.test(pwd)
     );
   };
 
