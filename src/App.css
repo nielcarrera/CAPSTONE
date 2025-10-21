@@ -6,6 +6,9 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  overflow-y: scroll; /* This forces the vertical scrollbar to always be present */
+}
 /* Sidebar transitions */
 .sidebar {
   transition-property: width, transform;

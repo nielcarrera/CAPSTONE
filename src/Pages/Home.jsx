@@ -1,273 +1,233 @@
-import { Link, Navigate } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import apk from "../assets/apk.png";
-import routine from "../Pages/Routine";
-
+import { Link, useNavigate } from "react-router-dom";
+import Navbar from "../components/NavbarSplashScreen";
 import home1 from "../assets/home1.jpg";
 import home2 from "../assets/home2.avif";
 import home3 from "../assets/home3.webp";
 import home4 from "../assets/home4.webp";
 
+const Home = () => {
+  const navigate = useNavigate();
 
-const Home = ({session}) => {
   const coreFeatures = [
     {
       title: "User Dashboard",
       description: "Track your progress",
-      path: "/lp",
-      path: "/db",
-      image: home1, // You can replace this with actual feature-specific images
+      path: "/login",
+      image: home1,
     },
     {
-      title: "Identify Skintype and Impurities",
-      description: "(for mobile application)",
-      path: "download",
+      title: "Identify Skintype",
+      description: "Mobile app feature",
+      path: "/download",
       image: home2,
     },
     {
       title: "Create Routine",
       description: "AI Generated Routines",
-      path: "/create-routine",
+      path: "/login",
       image: home3,
     },
     {
-      title: "Manage Product",
-      description: "Skin Product Reccomendation",
-      path: "/manage-product",
+      title: "Product Management",
+      description: "Personalized Recommendations",
+      path: "/login",
       image: home4,
     },
   ];
 
-  const handleRoutine = () => {
-    navigate("/routine"); // Change "/dashboard" to the route you want
-  };
-
-  const navigate = useNavigate();
-  const goToDownload = () => {
-    navigate("/download");
-  };
-
   return (
     <div className="min-h-screen bg-white">
-      <Navbar session={session}/>
-      <br></br>
+      <Navbar />
+
       {/* Main Content */}
-      <div className="w-full px-20 pt-20 tracking-wide">
+      <main className="w-full mt-20 px-4 sm:px-8 md:px-12 lg:px-20 pt-8 md:pt-16 pb-20">
         {/* Hero Section */}
-        <h1 className="text-4xl font-bold mb-12 px-4 py-12">INSECURITY FREE</h1>
+        <section className="mb-16">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8 text-center md:text-left">
+            <span className="bg-gradient-to-r from-cyan-600 to-gray-800 bg-clip-text text-transparent">
+              INSECURITY FREE
+            </span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 max-w-3xl">
+            Your personalized skincare companion for healthier, glowing skin.
+            Discover your skin type, track progress, and build perfect routines.
+          </p>
+        </section>
 
         {/* Core Features */}
-        <section className="mb-16">
-          <h2 className="text-2xl font-bold mb-8 text-center">CORE FEATURES</h2>
-          <div className="mt-20 grid grid-cols-1 md:grid-cols-4 gap-6 px-4">
+        <section className="mb-20">
+          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">
+            Core Features
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {coreFeatures.map((feature, index) => (
               <Link
                 key={index}
                 to={feature.path}
-                className="group relative overflow-hidden rounded-xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                className="group relative overflow-hidden rounded-xl shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
               >
                 <div className="aspect-square relative">
-                  {/* Image */}
                   <img
                     src={feature.image}
                     alt={feature.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent opacity-95 transition-opacity duration-300 group-hover:opacity-90" />
-
-                  {/* Text Content */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
-                    <h3 className="text-xl font-bold text-white mb-2 drop-shadow-lg">
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <h3 className="text-xl font-bold text-white mb-1">
                       {feature.title}
                     </h3>
-                    {feature.description && (
-                      <p className="text-white/90 text-sm transform opacity-0 transition-all duration-300 group-hover:opacity-100">
-                        {feature.description}
-                      </p>
-                    )}
+                    <p className="text-white/90 text-sm">
+                      {feature.description}
+                    </p>
                   </div>
                 </div>
               </Link>
             ))}
           </div>
         </section>
-        <br></br>
-        <br></br>
-        <br></br>
-        {/* Mobile Application Section */}
-        <section className="mb-16 w-full ">
-          <h2 className="text-3xl font-bold mb-20 text-center">
-            Download our Mobile Application
-          </h2>
-          <div className="grid grid-rows-[auto_1fr_auto] h-full">
-            <p className="text-gray-600 mb-20 text-xl flex-wrap w-full tracking-wide">
-              Start your personal glow-up journey by downloading our{" "}
-              <span className="font-semibold">mobile application</span>. Enjoy
-              useful features designed to enhance your skincare routine.
-              <p>
-                {" "}
-                Access useful features including{" "}
-                <span className="font-semibold text-blue-400">
-                  {" "}
-                  Skintype Detection and Skin Impurity Detection.
-                </span>{" "}
-              </p>
-            </p>
 
-            <button
-              className="bg-gray-800 text-white px-25 py-5 font-bold rounded-md hover:bg-cyan-900 transition-colors place-self-end"
-              onClick={goToDownload}
-            >
-              Download App
-            </button>
+        {/* Mobile Application Section */}
+        <section className="mb-20 py-12 px-6 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">
+              Download Our Mobile App
+            </h2>
+            <p className="text-gray-600 mb-8 text-lg text-center">
+              Start your personal glow-up journey with our mobile application.
+              Enjoy features including{" "}
+              <span className="font-semibold text-cyan-700">
+                Skintype Detection and Skin Impurity Analysis
+              </span>
+              .
+            </p>
+            <div className="flex justify-center">
+              <button
+                onClick={() => navigate("/download")}
+                className="bg-gradient-to-r from-cyan-600 to-gray-700 text-white px-10 py-3 font-semibold rounded-lg hover:from-cyan-700 hover:to-blue-800 transition-all shadow-md"
+              >
+                Download Now
+              </button>
+            </div>
           </div>
         </section>
 
-        {/*Dasboard  Section */}
-        <div className="mb-16 mt-20 grid grid-cols-3 md:grid-cols-2 gap-8 items-center">
-          <div className="px-4 md:px-0">
-            <h2 className="text-2xl font-bold text-center md:text-left mb-10 md:mb-20">
-              User Dashboard
+        {/* Dashboard Section */}
+        <section className="mb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="order-2 lg:order-1">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6">
+              Comprehensive Dashboard
             </h2>
-            <p className="text-gray-600 text-xl  md:text-left">
-              Track your progress by having comprehensive analysis reports,
-              including useful graphic organizers to provide accurate and
-              comprehensive report to analyze skin issues and impurities.
+            <p className="text-gray-600 text-lg mb-8">
+              Track your progress with detailed analysis reports and visual
+              organizers to monitor skin improvements and track product
+              effectiveness over time.
             </p>
             <button
-              className="bg-gray-800 text-white px-20 py-4 font-bold rounded-md bg-cyan-900 hover:bg-cyan-900 transition-colors place-self-end transition-colors place-self-end mt-20"
-              onClick={() => navigate("/db")}
+              onClick={() => navigate("/login")}
+              className="bg-cyan-800 text-white px-8 py-3 font-semibold rounded-lg hover:bg-cyan-800 transition-colors"
             >
               Go to Dashboard
             </button>
           </div>
-
-          <div className="flex md:justify-end">
-            <div className="w-[100%] sm:w-[60%] md:w-full max-w-[400px]">
+          <div className="order-1 lg:order-2 flex justify-center lg:justify-end">
+            <div className="w-full max-w-md overflow-hidden rounded-xl shadow-xl">
               <img
                 src={home1}
-                alt="Skintype detection"
-                className="w-full h-auto rounded-lg shadow-md"
+                alt="Dashboard preview"
+                className="w-full h-auto object-cover"
               />
             </div>
           </div>
-        </div>
+        </section>
 
-        <br></br>
-        <br></br>
-        <br></br>
-        <br></br>
-
-        {/* Skin Impurity Detection Section */}
-
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-8 items-center mb-16">
-          {/* Text Section */}
-          <div className="px-4 md:px-0 order-2">
-            <h2 className="text-2xl font-bold text-center md:text-left mb-20">
-              Skin Impurity and Skin Type Detection
-            </h2>
-            <p className="text-gray-600 text-xl text-center md:text-left">
-              Just a single face scanning using your cellphone cameras we can
-              seamlessly identify skin impurities such as acne, blackheads, and
-              redness using our advanced camera analysis. Helps identify skin
-              type as well , we can tell rather it is oily,normal,sensitive or
-              dry. Start downloading our{" "}
-              <span
-                className="text-blue-600 cursor-pointer"
-                onClick={() => navigate("/download")}
-              >
-                Mobile Application
-              </span>
-            </p>
-            <button className="bg-gray-800 text-white  px-20 py-4 font-bold rounded-md hover:bg-cyan-900 transition-colors place-self-end mt-20">
-              Go to Routine
-            </button>
-          </div>
-
-          {/* Image Section */}
-          <div className=" md:justify-end">
-            <div className=" w-[100%] sm:w-[60%] md:w-full max-w-[400px]">
+        {/* Skin Analysis Section */}
+        <section className="mb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="flex justify-center lg:justify-start">
+            <div className="w-full max-w-md overflow-hidden rounded-xl shadow-xl">
               <img
                 src={home2}
-                alt="Skintype detection"
-                className="w-full h-auto rounded-lg shadow-md"
+                alt="Skin analysis"
+                className="w-full h-auto object-cover"
               />
             </div>
           </div>
-        </div>
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6">
+              Advanced Skin Analysis
+            </h2>
+            <p className="text-gray-600 text-lg mb-8">
+              Our mobile app uses advanced camera analysis to identify skin
+              impurities like acne and blackheads, and determine your skin type
+              (oily, normal, sensitive, or dry) with just a simple scan.
+            </p>
+            <button
+              onClick={() => navigate("/download")}
+              className="bg-cyan-800 text-white px-8 py-3 font-semibold rounded-lg hover:bg-cyan-800 transition-colors"
+            >
+              Get the App
+            </button>
+          </div>
+        </section>
 
-        <br></br>
-        <br></br>
-        <br></br>
-        <br></br>
-
-        {/* Product Recommendation & Management Section */}
-        <section className="mb-30">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            {/* Text Section */}
-            <div className="px-4 md:px-0">
-              <h2 className="text-2xl font-bold text-center md:text-left mb-10 md:mb-20">
-                Product Recommendation & Management
-              </h2>
-              <p className="text-gray-600 text-xl md:text-left">
-                Get personalized skincare product recommendations based on your
-                skin’s needs. Save and manage your favorite products to build an
-                effective routine.
-              </p>
-              <button className="bg-gray-800 text-white px-20 py-4 font-bold rounded-md hover:bg-cyan-900 transition-colors place-self-end mt-10">
-                Go to Products
-              </button>
-            </div>
-
-            {/* Image Section */}
-            <div className="flex md:justify-end">
-              <div className="w-[100%] sm:w-[60%] md:w-full max-w-[500px]">
-                <img
-                  src={home3}
-                  alt="Product management"
-                  className="w-full h-auto rounded-lg shadow-md"
-                />
-              </div>
+        {/* Product Recommendations Section */}
+        <section className="mb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6">
+              Personalized Product Recommendations
+            </h2>
+            <p className="text-gray-600 text-lg mb-8">
+              Get tailored skincare product suggestions based on your skin's
+              unique needs. Save and organize your favorite products to build an
+              effective, personalized routine.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="bg-cyan-800 text-white px-8 py-3 font-semibold rounded-lg hover:bg-cyan-800 transition-colors"
+            >
+              Browse Products
+            </button>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <div className="w-full max-w-md overflow-hidden rounded-xl shadow-xl">
+              <img
+                src={home3}
+                alt="Product recommendations"
+                className="w-full h-auto object-cover"
+              />
             </div>
           </div>
         </section>
 
         {/* Routine Builder Section */}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-16">
-          {/* Text Section */}
-          <div className="px-4 md:px-0 order-2">
-            <h2 className="text-2xl font-bold text-center md:text-left mb-20">
-              Routine Builder
-            </h2>
-            <p className="text-gray-600 text-xl text-center md:text-left">
-              Create a customized skincare routine tailored to your skin type
-              and goals. Choose from morning, night, or fully personalized
-              skincare routines.
-            </p>
-            <button
-              className="bg-gray-800 text-white  px-20 py-4 font-bold rounded-md hover:bg-cyan-900 transition-colors place-self-end mt-20"
-              onClick={handleRoutine}
-            >
-              Go to Routine
-            </button>
-          </div>
-
-          {/* Image Section */}
-          <div className="md:justify-end">
-            <div className="h-[100%] sm:w-[60%] md:w-full max-w-[500px]">
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="flex justify-center lg:justify-start">
+            <div className="w-full max-w-md overflow-hidden rounded-xl shadow-xl">
               <img
                 src={home4}
                 alt="Routine builder"
-                className="w-full h-auto rounded-lg shadow-md"
+                className="w-full h-auto object-cover"
               />
             </div>
           </div>
-        </div>
-      </div>
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6">
+              AI-Powered Routine Builder
+            </h2>
+            <p className="text-gray-600 text-lg mb-8">
+              Create customized skincare routines tailored to your skin type and
+              goals. Choose from morning, night, or fully personalized regimens
+              designed by our AI technology.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="bg-cyan-800 text-white px-8 py-3 font-semibold rounded-lg hover:bg-cyan-800 transition-colors"
+            >
+              Build Your Routine
+            </button>
+          </div>
+        </section>
+      </main>
     </div>
   );
 };

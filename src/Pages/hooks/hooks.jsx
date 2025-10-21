@@ -1,18 +1,18 @@
-import { useNavigate } from 'react-router-dom';
-import supabase from "../../supabase";
+// src/Pages/hooks/hooks.js
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabaseClient";
 
-export function useLogout() {
+export const useLogout = () => {
   const navigate = useNavigate();
 
-  async function logout() {
+  const logout = async () => {
     const { error } = await supabase.auth.signOut();
-
     if (error) {
-      console.error('Logout error:', error.message);
+      console.error("Logout error:", error.message);
     } else {
-      navigate('/login'); // or wherever you want
+      navigate("/login"); // or wherever you want to redirect after logout
     }
-  }
+  };
 
   return logout;
-}
+};

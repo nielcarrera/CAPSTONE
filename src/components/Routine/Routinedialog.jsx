@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { Plus, X, Trash } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, X, Trash, Edit } from "lucide-react";
+import ProductListDialog from "./ProductListDialog";
+import { saveRoutine, updateRoutine } from "../../service/routineService";
+import { supabase } from "../../lib/supabaseClient";
 
 const timeOptions = Array.from({ length: 24 }, (_, i) => {
   const hour = i % 12 || 12;
@@ -7,298 +10,348 @@ const timeOptions = Array.from({ length: 24 }, (_, i) => {
   return `${hour}:00 ${ampm}`;
 });
 
-// Predefined list of products
-const predefinedProducts = [
-  "Salicylic Acid Cleanser",
-  "Vitamin C Serum",
-  "Moisturizing Cream",
-  "Sunscreen SPF 50",
-  "Retinol Serum",
-  "Hyaluronic Acid",
-  "Niacinamide",
-  "AHA/BHA Exfoliant",
-];
+const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
+  const [routineData, setRoutineData] = useState({
+    type: "Morning",
+    name: "",
+    time: timeOptions[7],
+    duration: 10,
+  });
 
-const RoutineDialog = ({ open, onOpenChange, onSave }) => {
   const [steps, setSteps] = useState([
-    { id: 1, product: "", note: "", isCustom: false },
+    { id: 1, productId: null, productName: "", usage: "" },
   ]);
+
   const [showProductDialog, setShowProductDialog] = useState(false);
+  const [currentStepId, setCurrentStepId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false); // ✅ new flag
+
+  // ✅ Initialize or reset routine
+  useEffect(() => {
+    if (initialRoutineData) {
+      setRoutineData({
+        type: initialRoutineData.type || "Morning",
+        name: initialRoutineData.name || "",
+        time: initialRoutineData.time || timeOptions[7],
+        duration: initialRoutineData.duration || 10,
+      });
+
+      const mappedSteps = initialRoutineData.steps.map((step, index) => ({
+        id: index + 1,
+        productId: step.productId || null,
+        productName: step.product || "",
+        usage: step.usage || "",
+      }));
+      setSteps([{ id: 1, productId: null, productName: "", usage: "" }]);
+
+      setSteps(
+        mappedSteps.length
+          ? mappedSteps
+          : [{ id: 1, productId: null, productName: "", note: "" }]
+      );
+    } else {
+      setRoutineData({
+        type: "Morning",
+        name: "",
+        time: timeOptions[7],
+        duration: 10,
+      });
+      setSteps([{ id: 1, productId: null, productName: "", note: "" }]);
+    }
+  }, [initialRoutineData]);
+
+  // ✅ Validate only when user submits
+  const validateRoutine = () => {
+    let errors = {};
+    let isValid = true;
+
+    if (!routineData.name.trim()) {
+      errors.name = "Routine name is required.";
+      isValid = false;
+    }
+
+    // Validate steps only if no productId and no productName
+    steps.forEach((step, index) => {
+      if (!step.productId && !step.productName) {
+        errors[`step_${index}`] = "Please select a product.";
+        isValid = false;
+      }
+    });
+
+    setValidationErrors(errors);
+    return isValid;
+  };
+
+  const handleRoutineChange = (field, value) => {
+    setRoutineData({ ...routineData, [field]: value });
+  };
 
   const addStep = () => {
-    const newStep = {
-      id: steps.length + 1,
-      product: "",
-      note: "",
-      isCustom: false, // Default to dropdown
-    };
-    setSteps([...steps, newStep]);
+    setSteps([
+      ...steps,
+      { id: steps.length + 1, productId: null, productName: "", note: "" },
+    ]);
   };
 
   const handleDeleteStep = (id) => {
-    setSteps((prevSteps) => prevSteps.filter((step) => step.id !== id));
+    setSteps((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const handleProductChange = (stepId, value) => {
+  const handleProductSelect = (product) => {
     setSteps((prevSteps) =>
       prevSteps.map((step) =>
-        step.id === stepId ? { ...step, product: value } : step
-      )
-    );
-  };
-
-  const handleProductSelectFromDialog = (stepId, product) => {
-    setSteps((prevSteps) =>
-      prevSteps.map((step) =>
-        step.id === stepId ? { ...step, product, isCustom: false } : step
-      )
-    );
-    setShowProductDialog(false); // Close the dialog after selection
-  };
-
-  const toggleCustomInput = (stepId) => {
-    setSteps((prevSteps) =>
-      prevSteps.map((step) =>
-        step.id === stepId
-          ? { ...step, isCustom: !step.isCustom, product: "" }
+        step.id === currentStepId
+          ? {
+              ...step,
+              productId: product.id,
+              productName: product.name,
+              usage: product.usage || step.usage || "",
+              // ✅ auto-fill usage if available
+            }
           : step
       )
     );
+
+    setShowProductDialog(false);
   };
 
-  if (!open) return null;
+  const handleUsageChange = (id, value) => {
+    setSteps((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, usage: value } : s))
+    );
+  };
+
+  const handleSave = async () => {
+    setShowErrors(true); // ✅ show validation errors only after user attempts save
+    if (!validateRoutine()) return;
+
+    setIsSubmitting(true);
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        alert("You must be logged in to save a routine.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const currentUserId = user.id;
+
+      const routineToSave = {
+        ...routineData,
+        steps: steps
+          .filter((s) => s.productId)
+          .map(({ id, productId, usage }) => ({
+            stepNumber: id,
+            product: productId,
+            usage,
+          })),
+        id: initialRoutineData ? initialRoutineData.id : null,
+      };
+
+      if (initialRoutineData) {
+        await updateRoutine(routineToSave, currentUserId);
+        alert("Routine updated successfully!");
+      } else {
+        await saveRoutine(routineToSave, currentUserId);
+        alert("Routine saved successfully!");
+      }
+
+      onOpenChange(false);
+      onSave(routineToSave);
+    } catch (err) {
+      alert("Failed to save routine: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const dialogTitle = initialRoutineData
+    ? "Edit Routine"
+    : "Create New Routine";
+  const buttonText = initialRoutineData ? "Update Routine" : "Save Routine";
 
   return (
     <>
-      <div className="fixed inset-0 bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg max-w-2xl w-full relative border-2 border-cyan-800 p-5">
-          <div className="p-6">
-            <button
-              onClick={() => onOpenChange(false)}
-              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg max-w-3xl w-full relative border border-gray-800 shadow-xl max-h-[90vh] flex flex-col">
+            <div className="p-6 flex-grow overflow-auto">
+              <button
+                onClick={() => onOpenChange(false)}
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold">Add New Routine</h2>
-            </div>
+              <h2 className="text-xl font-semibold mb-6">{dialogTitle}</h2>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Routine Type
-                </label>
-                <select className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500">
-                  <option>Morning</option>
-                  <option>Night</option>
-                  <option>Custom</option>
-                </select>
-              </div>
+              {/* Routine Info */}
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Routine Type
+                    </label>
+                    <select
+                      value={routineData.type}
+                      onChange={(e) =>
+                        handleRoutineChange("type", e.target.value)
+                      }
+                      className="w-full rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option>Morning</option>
+                      <option>Night</option>
+                      <option>Custom</option>
+                    </select>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Time
-                  </label>
-                  <select className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500">
-                    {timeOptions.map((time) => (
-                      <option key={time}>{time}</option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Routine Name
+                    </label>
+                    <input
+                      type="text"
+                      value={routineData.name}
+                      onChange={(e) =>
+                        handleRoutineChange("name", e.target.value)
+                      }
+                      placeholder="e.g. 'My Glow Routine'"
+                      className={`w-full rounded border p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
+                        showErrors && validationErrors.name
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                    />
+                    {showErrors && validationErrors.name && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {validationErrors.name}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Duration (minutes)
+
+                {/* Steps */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Routine Steps
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    defaultValue="10"
-                    className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-                  />
-                </div>
-              </div>
+                  <div className="space-y-3">
+                    {steps.map((step, index) => (
+                      <div key={step.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="font-medium">Step {index + 1}</span>
+                          {steps.length > 1 && (
+                            <button
+                              onClick={() => handleDeleteStep(step.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Routine Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter routine name"
-                  className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-                />
-              </div>
-
-              <div className="max-w-full overflow-auto max-h-[300px] border-1 rounded-lg border-gray-800 shadow-md shadow-gray-800 p-4 ">
-                <label className="block text-sm font-medium text-gray-800 mb-2"></label>
-                <table className="min-w-[700px] border-collapse border border-gray-300">
-                  {/* Table Header */}
-                  <thead>
-                    <tr className="bg-gray-100 text-gray-800">
-                      <th className="border border-gray-300 px-4 py-2 w-2/12 text-center">
-                        Step
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2  w-5/12 text-center">
-                        Product
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2  w-6/12 text-center">
-                        Body Part
-                      </th>
-                      <th className="border border-gray-300 px-4 py-2 W-2/12 text-center">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-
-                  {/* Table Body */}
-                  <tbody>
-                    {steps.map((step) => (
-                      <tr key={step.id} className="border-b border-gray-300">
-                        {/* Step Number */}
-                        <td className="border border-gray-300 px-4 py-2 font-medium text-center">
-                          {step.id}
-                        </td>
-
-                        {/* Product Selection (Dropdown or Input) */}
-                        <td className="border border-gray-300 px-4 py-2">
-                          {step.isCustom ? (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              Product
+                            </label>
                             <div className="relative">
                               <input
                                 type="text"
-                                value={step.product}
-                                onChange={(e) =>
-                                  handleProductChange(step.id, e.target.value)
-                                }
-                                placeholder="Enter your own product"
-                                className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                value={step.productName || ""}
+                                readOnly
+                                onClick={() => {
+                                  setCurrentStepId(step.id);
+                                  setShowProductDialog(true);
+                                }}
+                                placeholder="Select your product"
+                                className={`w-full rounded border p-2 pr-10 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
+                                  showErrors &&
+                                  validationErrors[`step_${index}`]
+                                    ? "border-red-500"
+                                    : "border-gray-300"
+                                }`}
                               />
                               <button
-                                onClick={() => toggleCustomInput(step.id)}
-                                className="absolute inset-y-0 right-2 text-gray-500 hover:text-gray-700"
+                                onClick={() => {
+                                  setCurrentStepId(step.id);
+                                  setShowProductDialog(true);
+                                }}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500"
                               >
-                                <X className="w-4 h-4" />
+                                <Edit className="w-4 h-4" />
                               </button>
                             </div>
-                          ) : (
-                            <select
-                              value={step.product}
-                              onChange={(e) => {
-                                if (e.target.value === "custom") {
-                                  toggleCustomInput(step.id);
-                                } else {
-                                  handleProductChange(step.id, e.target.value);
-                                }
-                              }}
-                              className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 appearance-none"
-                            >
-                              <option value="">Select a product</option>
-                              {predefinedProducts.map((product) => (
-                                <option key={product} value={product}>
-                                  {product}
-                                </option>
-                              ))}
-                              <option value="custom">Enter my own</option>
-                            </select>
-                          )}
-                          <button
-                            className="w-full mt-2 px-4 py-2 border bg-gray-800 rounded-md hover:bg-gray-600 text-white transition-colors"
-                            onClick={() => setShowProductDialog(true)}
-                          >
-                            Go to My Products
-                          </button>
-                        </td>
+                            {showErrors &&
+                              validationErrors[`step_${index}`] && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {validationErrors[`step_${index}`]}
+                                </p>
+                              )}
+                          </div>
 
-                        {/* Body Part Selection */}
-                        <td className="border border-gray-300 px-4 py-2">
-                          <select
-                            value={step.bodyPart || ""}
-                            onChange={(e) =>
-                              handleBodyPartChange(step.id, e.target.value)
-                            }
-                            className="w-full rounded-md border border-gray-300 p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 appearance-none"
-                          >
-                            <option value="">Select a body part</option>
-                            <option value="Face">Face</option>
-                            <option value="Arms">Arms</option>
-                            <option value="Legs">Legs</option>
-                            <option value="Back">Back</option>
-                          </select>
-                        </td>
-
-                        {/* Delete Button */}
-                        <td className="border border-gray-300 px-4 py-2 text-center">
-                          <button
-                            onClick={() => handleDeleteStep(step.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash className="w-5 h-5" />
-                          </button>
-                        </td>
-                      </tr>
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              Usage
+                            </label>
+                            <input
+                              type="text"
+                              value={step.usage}
+                              onChange={(e) =>
+                                handleUsageChange(step.id, e.target.value)
+                              }
+                              placeholder="Auto-filled from selected product"
+                              readOnly
+                              className="w-full rounded border border-gray-300 p-2 bg-gray-100 text-gray-700 cursor-not-allowed"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     ))}
 
-                    {/* Add Step Button */}
-                    <tr>
-                      <td colSpan="2" className="text-left px-4 py-2">
-                        <button
-                          type="button"
-                          onClick={addStep}
-                          className="inline-flex items-center px-3 py-2 text-sm border text-white bg-cyan-800 rounded-md hover:bg-cyan-600 transition-colors"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Step
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <button
-                className="w-full px-4 py-2 bg-cyan-800 text-white rounded-md hover:bg-cyan-900 transition-colors"
-                onClick={() => {
-                  onSave?.();
-                  onOpenChange(false);
-                }}
-              >
-                Save Routine
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showProductDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 relative">
-            <button
-              onClick={() => setShowProductDialog(false)}
-              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h2 className="text-xl font-semibold mb-4">My Products</h2>
-            {/* Example saved products */}
-            <div className="space-y-4">
-              {["Saved Product 1", "Saved Product 2"].map((product) => (
-                <div
-                  key={product}
-                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
-                  onClick={() =>
-                    handleProductSelectFromDialog(steps[0].id, product)
-                  }
-                >
-                  <p className="text-gray-800">{product}</p>
+                    <button
+                      type="button"
+                      onClick={addStep}
+                      className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:text-blue-500 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" /> Add Step
+                    </button>
+                  </div>
                 </div>
-              ))}
+
+                {/* Buttons */}
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={() => onOpenChange(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Saving..." : buttonText}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Floating Generate Routine Button */}
+      <ProductListDialog
+        open={showProductDialog}
+        onClose={() => setShowProductDialog(false)}
+        onSelectProduct={handleProductSelect}
+      />
     </>
   );
 };

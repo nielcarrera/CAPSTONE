@@ -11,25 +11,72 @@ import "swiper/css/autoplay";
 import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
-import logo from "../assets/weblogo.png";
-import supabase from "../supabase";
-import Home from "./Home";
+import logo from "../assets/logo.webp";
+import { supabase } from "../lib/supabaseClient";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [session, setSession] = useState(null)
+  const [session, setSession] = useState(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const goToRegister = () => navigate("/register");
+
+  const insertUserDataIfMissing = async (userId, userEmail) => {
+    // Check if user exists in our custom tables
+    const { data: existingUser, error: fetchError } = await supabase
+      .from("user") // ✅ correct table name
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      // PGRST116 is the code for no rows found
+      throw fetchError;
+    }
+
+    if (!existingUser) {
+      // Get user metadata from auth
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const userPayload = {
+        id: userId,
+        email: userEmail,
+        first_name: user.user_metadata?.first_name || "",
+        last_name: user.user_metadata?.last_name || "",
+        age: Number(user.user_metadata?.age) || null,
+        gender: user.user_metadata?.gender || "",
+        created_at: new Date().toISOString(),
+      };
+
+      // Insert into users table
+      // Insert into user table
+      const { error: userError } = await supabase
+        .from("user") // ✅ correct table
+        .insert([userPayload]);
+
+      if (userError) throw userError;
+
+      // Insert into user_details table
+      const { error: detailsError } = await supabase
+        .from("user_details")
+        .insert([userPayload]);
+
+      if (detailsError) throw detailsError;
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Sign in with Supabase Auth
       const {
         data: { session },
         error,
@@ -47,7 +94,7 @@ const Login = () => {
         } else {
           throw error;
         }
-        throw error;
+        return;
       }
 
       if (!session) {
@@ -55,52 +102,32 @@ const Login = () => {
         return;
       }
 
-      // Step 1: Validate user existence
+      // Ensure user data exists in our custom tables
+      await insertUserDataIfMissing(session.user.id, email);
+
+      localStorage.setItem("userEmail", email);
+
+      // Check if user has seen intro (you might want to adjust this logic)
       const { data: userData, error: userError } = await supabase
         .from("user")
-        .select("*")
-        .eq("email", email)
-        .limit(1);
+        .select("first_time")
+        .eq("id", session.user.id)
+        .single();
 
-      if (userError) {
-        throw userError;
-      }
+      if (userError) throw userError;
 
-      if (userData.length === 0) {
-        toast.error("User not found", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        return;
-      }
+      if (userData?.first_time) {
+        // Update first_time to false
+        await supabase
+          .from("user")
+          .update({ first_time: false })
+          .eq("id", session.user.id);
 
-      // Step 2: Validate password
-      const user = userData[0];
-      if (user.password !== password) {
-        toast.error("Invalid password", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        return;
-      }
-
-      localStorage.setItem("userEmail", email); // Store the user's email
-
-      if (!user.has_seen_intro) {
         navigate("/intro");
       } else {
-        navigate("/");
+        navigate("/lp");
       }
 
-      // Show success message
       toast.success("Login successful!", {
         position: "top-center",
         autoClose: 3000,
@@ -138,20 +165,21 @@ const Login = () => {
 
   const signUp = async () => {
     await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    })
+      provider: "google",
+    });
   };
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
+      setSession(session);
+    });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
+      setSession(session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   if (!session) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white p-4 ">
@@ -161,11 +189,6 @@ const Login = () => {
           style={{ maxWidth: "1000px", width: "100%" }}
         >
           <div className="p-10 md:w-1/2 w-full">
-            <img
-              src={logo} // Replace with your actual logo path
-              alt="Logo"
-              className="w-35 h-13"
-            />
             <h2 className="text-2xl ml-5 md:text-3xl font-bold mb-10 mt-5">
               Welcome to Insecurity Free
             </h2>
@@ -187,14 +210,24 @@ const Login = () => {
                 required
                 className="p-2.5 border rounded bg-gray-700 text-white text-sm"
               />
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="p-2.5 border rounded bg-gray-700 text-white text-sm"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="p-2.5 border rounded bg-gray-700 text-white text-sm w-full pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <input
@@ -205,9 +238,6 @@ const Login = () => {
                   />
                   <span className="text-sm">Remember me</span>
                 </div>
-                <a href="#" className="text-blue-400 text-sm hover:underline">
-                  Forgot password?
-                </a>
               </div>
               <button
                 type="submit"
@@ -220,23 +250,11 @@ const Login = () => {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-600"></div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-gray-800 text-gray-400">
-                    Or continue with
-                  </span>
-                </div>
+                <div className="relative flex justify-center text-sm"></div>
               </div>
-              <button
-                onClick={signUp}
-                type="button"
-                className="flex items-center justify-center gap-2 p-3 border border-gray-600 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
-              >
-                <img src={google} alt="Google" className="w-5 h-5" />
-                <span>Sign in with Google</span>
-              </button>
             </form>
           </div>
-  
+
           {/* Slideshow for Features */}
           <div className="md:w-1/2 relative" style={{ minHeight: "400px" }}>
             <Swiper
@@ -269,11 +287,8 @@ const Login = () => {
         </div>
       </div>
     );
-  }
-  else {
-    return (<div>
-      <Home session = {session}/>
-      </div>)
+  } else {
+    return null;
   }
 };
 

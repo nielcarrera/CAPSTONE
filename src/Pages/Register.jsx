@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
@@ -8,10 +8,14 @@ import "swiper/css/autoplay";
 import reg1 from "../assets/home2.avif";
 import reg2 from "../assets/home3.webp";
 import reg3 from "../assets/home4.webp";
-import logo from "../assets/weblogo.png";
-import supabase from "../supabase";
+import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "../lib/supabaseClient";
+import TermsAndConditions from "../components/TermsandCondtion";
 
 const Register = () => {
+  const navigate = useNavigate();
+
+  // form fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,8 +25,79 @@ const Register = () => {
   const [gender, setGender] = useState("");
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
-  const navigate = useNavigate();
+  // password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // field errors
+  const [errors, setErrors] = useState({});
+
+  const validatePassword = (pwd) => {
+    // must be at least 8 characters, have at least one uppercase, one lowercase letter, and one number
+    const minLength = /.{8,}/;
+    const upper = /[A-Z]/;
+    const lower = /[a-z]/;
+    const number = /[0-9]/;
+
+    return (
+      minLength.test(pwd) &&
+      upper.test(pwd) &&
+      lower.test(pwd) &&
+      number.test(pwd)
+    );
+  };
+
+  const validateFields = () => {
+    const newErrors = {};
+
+    if (!firstName.trim()) newErrors.firstName = "First name is required.";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required.";
+    if (!email.trim()) newErrors.email = "Email is required.";
+    if (!password) {
+      newErrors.password = "Password is required.";
+    } else if (!validatePassword(password)) {
+      newErrors.password =
+        "Password must be at least 8 characters, include an uppercase letter, a number, and a letter.";
+    }
+    if (!confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password.";
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match.";
+    }
+    if (!age) newErrors.age = "Age is required.";
+    if (!gender) newErrors.gender = "Please select your gender.";
+    if (!agree) newErrors.agree = "You must agree to the Terms & Conditions.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const insertUserData = async (userId, email, userData) => {
+    const { error: userError } = await supabase
+      .from("user")
+      .insert([{ id: userId, email, first_time: true }])
+      .select();
+
+    if (userError)
+      throw new Error(`Insert into user failed: ${JSON.stringify(userError)}`);
+
+    const { error: detailsError } = await supabase.from("user_details").insert([
+      {
+        id: userId,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        age: userData.age,
+        gender: userData.gender,
+      },
+    ]);
+
+    if (detailsError)
+      throw new Error(
+        `Insert into user_details failed: ${JSON.stringify(detailsError)}`
+      );
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,74 +106,43 @@ const Register = () => {
       alert("Passwords do not match!");
       return;
     }
-    if (!agree) {
-      alert("You must agree to the Terms & Conditions.");
-      return;
-    }
-
-    setLoading(true);
 
     try {
-      // Step 1: Register the user using Supabase Auth
+      // 1️⃣ Create the user WITHOUT keeping them signed in
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: { first_name: firstName, last_name: lastName, age, gender },
+        },
       });
 
-      if (authError) {
-        // Check if the error is due to the email already being registered
-        if (authError.message.includes("User already registered")) {
-          alert(
-            "This email is already registered. Please use a different email or log in."
-          );
-        } else {
-          console.error("Auth Error:", authError);
-          throw new Error(`Authentication failed: ${authError.message}`);
-        }
-        return; // Stop further execution
+      if (authError) throw authError;
+
+      // 2️⃣ Insert additional user data into your custom table
+      const userId = authData.user?.id;
+      if (userId) {
+        await insertUserData(userId, email, {
+          first_name: firstName,
+          last_name: lastName,
+          age,
+          gender,
+        });
       }
 
-      if (!authData.user) {
-        throw new Error("User registration failed. No user data returned.");
-      }
+      // 3️⃣ Immediately log the user out to prevent auto-login
+      await supabase.auth.signOut();
 
-      const userId = authData.user.id;
-      console.log("User ID:", userId); // Debugging line
-
-      // Optional: Add a small delay to ensure the user is fully registered
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
-
-      // Step 2: Insert user details into the 'userDetails' table
-      const { data: detailsData, error: detailsError } = await supabase
-        .from("userDetails")
-        .insert([
-          {
-            firstName,
-            lastName,
-            age: parseInt(age),
-            gender,
-            userId, // Associate details with the authenticated user's ID
-          },
-        ]);
-
-      if (detailsError) {
-        console.error("Details Error:", detailsError);
-        throw new Error(
-          `Failed to insert user details: ${detailsError.message}`
-        );
-      }
-
-      alert(
-        "Registration successful! Please check your email to confirm your account."
-      );
+      // 4️⃣ Redirect to login
+      alert("Registration successful! Please log in to continue.");
       navigate("/login");
     } catch (error) {
-      console.error("Registration Error:", error.message);
-      alert("Error during registration. Please try again.");
-    } finally {
-      setLoading(false);
+      console.error("Registration error:", error);
+      alert(error.message);
     }
   };
+
   const features = [
     {
       image: reg1,
@@ -120,13 +164,9 @@ const Register = () => {
         className="flex flex-col md:flex-row bg-gray-800 rounded-lg shadow-lg overflow-hidden"
         style={{ maxWidth: "1150px", width: "100%" }}
       >
-        <div className="p-10 md:w-1/2 p-6 w-full">
-          <img
-            src={logo} // Replace with your actual logo path
-            alt="Logo"
-            className="w-35 h-13"
-          />
-          <h2 className="text-2xl ml-5 md:text-3xl font-bold mb-10 mt-5">
+        {/* Left side - Registration form */}
+        <div className="p-10 md:w-1/2 w-full">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6 mt-3">
             Create an account
           </h2>
           <p className="mb-4 text-sm md:text-base">
@@ -140,83 +180,152 @@ const Register = () => {
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* First & Last Name */}
             <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                placeholder="First name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-                className="w-full sm:w-1/2 p-2.5 border rounded bg-gray-700 text-white text-sm"
-              />
-              <input
-                type="text"
-                placeholder="Last name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-                className="w-full sm:w-1/2 p-2.5 border rounded bg-gray-700 text-white text-sm"
-              />
+              <div className="w-full sm:w-1/2">
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full p-2.5 border rounded bg-gray-700 text-white text-sm"
+                />
+                {errors.firstName && (
+                  <p className="text-red-400 text-xs mt-1">
+                    {errors.firstName}
+                  </p>
+                )}
+              </div>
+
+              <div className="w-full sm:w-1/2">
+                <input
+                  type="text"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full p-2.5 border rounded bg-gray-700 text-white text-sm"
+                />
+                {errors.lastName && (
+                  <p className="text-red-400 text-xs mt-1">{errors.lastName}</p>
+                )}
+              </div>
             </div>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="p-2.5 border rounded bg-gray-700 text-white text-sm"
-            />
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="p-2.5 border rounded bg-gray-700 text-white text-sm"
-            />
-            <input
-              type="password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="p-2.5 border rounded bg-gray-700 text-white text-sm"
-            />
-            <div className="flex flex-col sm:flex-row gap-3">
+
+            {/* Email */}
+            <div>
               <input
-                type="number"
-                placeholder="Age"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                required
-                className="w-full sm:w-1/2 p-2.5 border rounded bg-gray-700 text-white text-sm"
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="p-2.5 border rounded bg-gray-700 text-white text-sm w-full"
               />
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                required
-                className="w-full sm:w-1/2 p-2.5 border rounded bg-gray-700 text-white text-sm"
+              {errors.email && (
+                <p className="text-red-400 text-xs mt-1">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="p-2.5 border rounded bg-gray-700 text-white text-sm w-full"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-2.5 text-gray-300 hover:text-white"
+                onClick={() => setShowPassword(!showPassword)}
               >
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+              {errors.password && (
+                <p className="text-red-400 text-xs mt-1">{errors.password}</p>
+              )}
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Confirm Password */}
+            <div className="relative">
               <input
-                type="checkbox"
-                checked={agree}
-                onChange={(e) => setAgree(e.target.checked)}
-                className="w-4 h-4"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="p-2.5 border rounded bg-gray-700 text-white text-sm w-full"
               />
-              <p className="text-sm">
-                I agree to the{" "}
-                <a href="#" className="text-blue-400">
-                  Terms & Conditions
-                </a>
-              </p>
+              <button
+                type="button"
+                className="absolute right-3 top-2.5 text-gray-300 hover:text-white"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+              {errors.confirmPassword && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.confirmPassword}
+                </p>
+              )}
             </div>
+
+            {/* Age & Gender */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="w-full sm:w-1/2">
+                <input
+                  type="number"
+                  placeholder="Age"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  className="w-full p-2.5 border rounded bg-gray-700 text-white text-sm"
+                />
+                {errors.age && (
+                  <p className="text-red-400 text-xs mt-1">{errors.age}</p>
+                )}
+              </div>
+
+              <div className="w-full sm:w-1/2">
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full p-2.5 border rounded bg-gray-700 text-white text-sm"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                {errors.gender && (
+                  <p className="text-red-400 text-xs mt-1">{errors.gender}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Terms */}
+            <div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <p className="text-sm">
+                  I agree to the{" "}
+                  <span
+                    className="text-blue-400 cursor-pointer hover:underline"
+                    onClick={() => setShowTerms(true)}
+                  >
+                    Terms & Conditions
+                  </span>
+                </p>
+              </div>
+              {errors.agree && (
+                <p className="text-red-400 text-xs mt-1">{errors.agree}</p>
+              )}
+            </div>
+
+            {/* Submit Button */}
             <button
               type="submit"
               className="bg-cyan-900 hover:bg-cyan-800 p-2.5 rounded text-base font-medium"
@@ -224,31 +333,38 @@ const Register = () => {
             >
               {loading ? "Creating account..." : "Create account"}
             </button>
+
+            {/* General error (e.g. Supabase insert fail) */}
+            {errors.general && (
+              <p className="text-red-400 text-sm mt-2 text-center">
+                {errors.general}
+              </p>
+            )}
           </form>
         </div>
 
-        {/* Slideshow for Features */}
+        {/* Right side - Slideshow */}
         <div className="md:w-1/2 relative" style={{ minHeight: "400px" }}>
           <Swiper
             modules={[Autoplay, Navigation]}
             spaceBetween={0}
             slidesPerView={1}
-            loop={true}
+            loop
             autoplay={{ delay: 3000 }}
             navigation
             style={{ height: "100%" }}
           >
-            {features.map((feature, index) => (
-              <SwiperSlide key={index} style={{ height: "100%" }}>
+            {features.map((f, i) => (
+              <SwiperSlide key={i}>
                 <div className="relative w-full h-full">
                   <img
-                    src={feature.image}
-                    alt={`Feature ${index + 1}`}
+                    src={f.image}
+                    alt={`Feature ${i + 1}`}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-4">
                     <p className="text-white text-xl md:text-3xl font-bold text-center">
-                      {feature.caption}
+                      {f.caption}
                     </p>
                   </div>
                 </div>
@@ -257,6 +373,20 @@ const Register = () => {
           </Swiper>
         </div>
       </div>
+
+      {/* Terms and Conditions Modal */}
+      {showTerms && (
+        <TermsAndConditions
+          onAgree={() => {
+            setAgree(true);
+            setShowTerms(false);
+          }}
+          onDecline={() => {
+            setAgree(false);
+            setShowTerms(false);
+          }}
+        />
+      )}
     </div>
   );
 };

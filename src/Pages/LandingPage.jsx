@@ -1,373 +1,294 @@
-import React, { useState } from "react";
-import { Share } from "lucide-react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { useLandingPageData } from "./hooks/LandingPage/lp_hook";
+import { skinTypes } from "../Pages/utils/SkintypesData";
 
-// Mock data for the dashboard
-const mockData = {
-  firstName: "Dannjiro Pon-Chan",
-  skinScore: 82,
-  skinType: "Combination",
-  faceProblems: {
-    keyProblems: [
-      { label: "Blackheads", value: 75, severity: "severe" },
-      { label: "Oil", value: 60, severity: "moderate" },
-      { label: "Acne", value: 40, severity: "mild" },
-    ],
-  },
-  bodyProblems: {
-    keyProblems: [], // No problems detected
-  },
-  analytics: [
-    { label: "Whiteheads", value: 80 },
-    { label: "Pores", value: 65 },
-    { label: "Redness", value: 50 },
-    { label: "Wrinkles", value: 30 },
-    { label: "Blackheads", value: 35 },
-    { label: "Acne", value: 40 },
-    { label: "Oil", value: 55 },
-    { label: "Freckles", value: 45 },
-  ],
-  recommendedProducts: [
-    {
-      id: 1,
-      name: "Salicylic Acid Cleanser",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      id: 2,
-      name: "Niacinamide Serum",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      id: 3,
-      name: "Retinol Treatment",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      id: 4,
-      name: "Vitamin C Serum",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      id: 5,
-      name: "Hyaluronic Acid",
-      image:
-        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
-    },
-  ],
+// --- CONSTANTS ---
+const ALL_IMPURITIES = [
+  "Redness",
+  "Acne",
+  "Blackheads",
+  "Wrinkles",
+  "Dark Circles",
+];
+
+// --- HELPER FUNCTION ---
+const getSkinTypeImageUrl = (typeName) => {
+  const typeData = skinTypes.find((st) => st.id === typeName);
+  return typeData?.imageUrl?.[0];
 };
 
-const LandingPage = () => {
-  const [userData] = useState(mockData); // Use dummy data directly
-  const [showAnalytics, setShowAnalytics] = useState(true);
+// --- MAIN COMPONENT ---
+const LandingPage = ({ user }) => {
+  const { data, loading, error } = useLandingPageData();
+  const navigate = useNavigate();
 
-  const getSeverityColor = (severity) => {
-    const colors = {
-      mild: "bg-green-400",
-      moderate: "bg-yellow-400",
-      severe: "bg-red-400",
-    };
-    return colors[severity] || "bg-gray-300";
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 lg:ml-[240px] flex items-center justify-center">
+        <Sidebar />
 
-  const getColorByValue = (value) => {
-    if (value >= 75) return "#f87171"; // severe - red
-    if (value >= 50) return "#facc15"; // moderate - yellow
-    return "#4ade80"; // mild - green
-  };
+        <div className="text-lg text-gray-600">Loading your dashboard...</div>
+      </div>
+    );
+  }
 
-  const handleShare = () => {
-    alert("Results shared successfully!");
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 lg:ml-[240px] flex items-center justify-center">
+        <Sidebar />
+
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-600">
+            Failed to load skin data
+          </h2>
+          <p className="text-gray-500 mt-2">
+            Please check your connection and try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSeeMore = () => navigate("/product");
+  const analyticsMap = new Map(
+    data.faceAnalytics.map((item) => [item.label, item.value])
+  );
+  const skinTypeImage = getSkinTypeImageUrl(data.skinType);
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i) => ({
+      opacity: 1,
+      y: 0,
+      transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" },
+    }),
   };
 
   return (
-    <div className="min-h-screen p-4 ml-0 md:ml-[240px] mt-25">
+    <div className="min-h-screen bg-gray-50 p-4 lg:ml-[240px]">
       <Sidebar />
-      <Navbar />
 
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <header className="mb-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold animate-fade-in">
-              Hello, <span className="text-cyan-800">{userData.firstName}</span>
-            </h1>
-          </div>
-          <p
-            className="text-gray-500 mt-1 animate-fade-in"
-            style={{ animationDelay: "50ms" }}
+      <main className="max-w-7xl mx-auto ">
+        <header className="mb-8">
+          <motion.h1
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-3xl font-bold text-gray-800"
           >
-            Here's your skin analysis dashboard
-          </p>
+            Hello, <span className="text-cyan-800">{data.firstName}</span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-gray-500 mt-1"
+          >
+            Here's a summary of your latest skin analysis.
+          </motion.p>
         </header>
 
-        {/* Main Grid - Single column on mobile, two columns on desktop */}
-        <div className="flex flex-col md:grid md:grid-cols-2 gap-4 mt-2">
-          {/* Row 1, Column 1 */}
-          <div className="p-2 md:p-3">
-            {/* Face Problems Card - Horizontal scroll on mobile */}
-            <div
-              className="mb-5 rounded-xl animate-scale-in border border-cyan-500"
-              style={{
-                boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)",
-                animation: "scaleIn 0.2s ease-out forwards",
-              }}
-            >
-              <div className="p-3 md:p-4 space-y-2">
-                <h2 className="text-lg md:text-xl font-semibold">
-                  Recent Key Problems (Face)
-                </h2>
-                <div className="mt-4 overflow-x-auto hide-scrollbar">
-                  <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-5 w-max md:w-full">
-                    {userData.faceProblems.keyProblems.map((problem, index) => (
+        {/* Symmetrical Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Top-Left: Key Problems */}
+          <motion.div
+            custom={1}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            className="bg-white rounded-xl shadow-sm p-6 border"
+          >
+            <h2 className="text-xl font-semibold text-gray-800 mb-5">
+              Key Problems (Face)
+            </h2>
+            <div className="space-y-5">
+              {data.faceKeyProblems.length > 0 ? (
+                data.faceKeyProblems.map((problem) => (
+                  <div key={problem.label}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        {problem.label}
+                      </span>
+                      <span className="text-xs font-semibold text-gray-500">
+                        {problem.value}%
+                      </span>
+                    </div>
+                    <div className="h-4 w-full bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        key={problem.label}
-                        className="space-y-1 animate-fade-in min-w-[120px] md:min-w-0"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                        <div className="text-sm font-medium">
-                          {problem.label}
-                        </div>
-                        <div className="h-3 w-full bg-gray-300 rounded-sm overflow-hidden">
-                          <div
-                            className={`${getSeverityColor(
-                              problem.severity
-                            )} h-full rounded-sm`}
-                            style={{
-                              width: `${problem.value}%`,
-                              transition: "width 0.5s ease-out",
-                            }}
-                          />
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {problem.value}%
-                        </div>
-                      </div>
-                    ))}
+                        className={`h-full rounded-full ${
+                          problem.severity === "severe"
+                            ? "bg-red-400"
+                            : problem.severity === "moderate"
+                            ? "bg-yellow-400"
+                            : "bg-green-400"
+                        }`}
+                        style={{ width: `${problem.value}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </div>
+                ))
+              ) : (
+                <p className="text-gray-500 italic text-center py-4">
+                  No significant issues detected.
+                </p>
+              )}
             </div>
+          </motion.div>
 
-            {/* Body Problems Card */}
-            <div
-              className="rounded-xl shadow-sm flex items-center justify-center border border-cyan-500 animate-scale-in"
-              style={{
-                boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)",
-                animation: "scaleIn 0.2s ease-out forwards",
-              }}
-            >
-              <div className="p-3 md:p-4 w-full">
-                <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-black">
-                  Recent Key Problems (Body)
-                </h2>
-                <div className="flex flex-col items-center justify-center py-3 md:py-4 animate-fade-in">
-                  <div className="text-base md:text-lg text-gray-400 font-medium">
-                    No Impurity Detected
+          {/* Top-Middle: Body Impurities (Dark Card) */}
+          <motion.div
+            custom={2}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            className="bg-gray-800 text-white rounded-xl shadow-lg p-6"
+          >
+            <h2 className="text-xl font-semibold mb-5">Body Impurities</h2>
+            <div className="space-y-3">
+              {data.bodyImpurities.length > 0 ? (
+                data.bodyImpurities.map((imp, i) => (
+                  <div
+                    key={i}
+                    className="bg-gray-700 rounded-lg p-3 flex justify-between items-center"
+                  >
+                    <h3 className="font-semibold text-gray-100">{imp.label}</h3>
+                    <p className="text-xs text-gray-400">
+                      {new Date(imp.detected_at).toLocaleDateString()}
+                    </p>
                   </div>
-                  <div className="mt-1 md:mt-2 text-sm text-gray-700">
-                    Your body skin appears to be clear
-                  </div>
-                </div>
-              </div>
+                ))
+              ) : (
+                <p className="text-gray-400 italic text-center py-4">
+                  Your body skin appears clear.
+                </p>
+              )}
             </div>
-          </div>
+          </motion.div>
 
-          {/* Row 1, Column 2 */}
-          <div className="bg-gray-800 rounded-xl shadow-lg p-3 md:p-5 h-full overflow-hidden animate-scale-in">
-            <div className="flex justify-center mb-1 md:mb-2">
-              <h2 className="text-lg md:text-xl font-semibold text-white p-1 mb-2 md:mb-3">
-                Recent Skin Issues Analytics (Face)
+          {/* Top-Right: Skin Type */}
+          <motion.div
+            custom={3}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            className="bg-white rounded-xl shadow-sm overflow-hidden h-[244px] relative flex flex-col justify-end p-6 border"
+          >
+            {skinTypeImage && (
+              <img
+                src={skinTypeImage}
+                alt={data.skinType}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
+            <div className="relative z-10 text-white">
+              <p className="text-sm uppercase tracking-wider">Your Skin Type</p>
+              <h2 className="text-4xl font-bold mt-1">
+                {data.skinType || "N/A"}
               </h2>
             </div>
+          </motion.div>
 
-            {showAnalytics && (
-              <div className="flex space-x-2 animate-fade-in mt-3 md:mt-5 justify-center overflow-x-auto hide-scrollbar">
-                {userData.analytics.map((issue, index) => (
-                  <div
-                    key={issue.label}
-                    className="flex flex-col items-center space-y-1 md:space-y-2 text-cyan-500"
-                    style={{
-                      animationDelay: `${index * 100}ms`,
-                      width: "50px md:w-60px",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <div className="flex items-center space-x-1 md:space-x-2">
-                      <div
-                        className="text-xs md:text-sm font-medium text-center"
-                        style={{
-                          writingMode: "vertical-rl",
-                          transform: "rotate(180deg)",
-                          marginRight: "3px md:5px",
-                        }}
-                      >
-                        {issue.label}
-                      </div>
-                      <div className="relative w-5 md:w-7 h-[100px] md:min-h-50 bg-gray-700 rounded-md overflow-hidden flex">
-                        <div
-                          className="absolute bottom-0 w-full rounded-md"
-                          style={{
-                            backgroundColor: getColorByValue(issue.value),
-                            height: `${issue.value}%`,
-                            transition: "height 0.5s ease-out",
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-xs md:text-sm font-semibold ml-3 md:ml-5">
-                      {issue.value}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Row 2, Column 1 */}
-          <div className="gap-3 md:gap-4">
-            {/* Skin Score Card */}
-            <div
-              className="bg-gray-800 rounded-xl pb-3 md:pb-5 shadow-sm overflow-hidden flex flex-col justify-between animate-scale-in"
-              style={{
-                boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)",
-                animation: "scaleIn 0.2s ease-out forwards",
-              }}
-            >
-              <div className="p-3 md:p-4">
-                <h2 className="text-lg md:text-xl text-white font-semibold mb-3 md:mb-4">
-                  Overall Skin Condition Score
-                </h2>
-                <div className="flex flex-col items-center justify-center py-1 md:py-2 animate-fade-in">
-                  <div className="text-4xl md:text-5xl font-bold text-blue-400">
-                    {userData.skinScore}
-                    <span className="text-lg md:text-xl text-gray-400 ml-1">
-                      /100
-                    </span>
-                  </div>
-                  <div className="mt-1 md:mt-2 text-sm text-gray-100">
-                    {userData.skinScore >= 80
-                      ? "Excellent"
-                      : userData.skinScore >= 60
-                      ? "Good"
-                      : userData.skinScore >= 40
-                      ? "Fair"
-                      : "Needs Attention"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center mb-5 md:mb-10">
-                <button
-                  onClick={handleShare}
-                  className="flex items-center justify-center w-8/12 md:w-6/12 py-2 px-3 md:px-4 rounded-xl bg-blue-500 text-white font-medium hover:bg-opacity-90 transition-colors"
-                >
-                  <Share size={14} className="mr-1 md:mr-2" />
-                  Share Results
-                </button>
-              </div>
-            </div>
-
-            {/* Skin Type Card */}
-            <div
-              className="rounded-xl shadow-sm my-1 md:my-2 overflow-hidden border border-cyan-500 animate-scale-in"
-              style={{
-                boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)",
-                animation: "scaleIn 0.2s ease-out forwards",
-              }}
-            >
-              <div className="p-3 md:p-4">
-                <div className="flex flex-col items-center justify-center py-1 md:py-2 animate-fade-in">
-                  <div className="text-2xl md:text-3xl font-semibold text-gray-800">
-                    Skintype:{" "}
-                    <span className="text-cyan-800 text-3xl md:text-4xl font-bold">
-                      {userData.skinType}
-                    </span>
-                  </div>
-                  <div className="mt-1 md:mt-2 text-xs md:text-sm text-gray-500 text-center">
-                    {userData.skinType === "Dry"
-                      ? "Your skin lacks oil and needs moisture."
-                      : userData.skinType === "Oily"
-                      ? "Your skin produces excess sebum."
-                      : userData.skinType === "Combination"
-                      ? "Your T-zone is oily, but cheeks are dry."
-                      : userData.skinType === "Normal"
-                      ? "Your skin is well-balanced."
-                      : userData.skinType === "Sensitive"
-                      ? "Your skin reacts easily to products."
-                      : "Your skin type has unique characteristics."}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 2, Column 2 */}
-          <div
-            className="rounded-xl shadow-sm border border-cyan-500 animate-scale-in"
-            style={{
-              boxShadow: "0 4px 24px rgba(0, 0, 0, 0.05)",
-              animation: "scaleIn 0.2s ease-out forwards",
-            }}
+          {/* Bottom Row: Full Width Analytics (Dark Card) */}
+          <motion.div
+            custom={4}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            className="lg:col-span-2 bg-gray-800 text-white rounded-xl shadow-lg p-6"
           >
-            <div className="p-4 md:p-6">
-              {/* Header with "See More" button */}
-              <div className="flex justify-between items-center mb-3 md:mb-4">
-                <h2 className="text-lg md:text-xl font-semibold">
-                  Recently Recommended Products
-                </h2>
-                <button
-                  onClick={() => console.log("See More clicked")}
-                  className="text-xs md:text-sm text-blue-500 hover:text-blue-600 font-medium"
-                >
-                  See More
-                </button>
-              </div>
-
-              {/* Horizontal Scrollable Cards */}
-              <div className="overflow-x-auto hide-scrollbar">
-                <div className="flex space-x-3 pb-2 w-max">
-                  {userData.recommendedProducts.map((product, index) => (
-                    <div
-                      key={product.id}
-                      className="flex-none w-28 md:w-36 rounded-lg overflow-hidden border border-cyan-500 transition-transform hover:transform hover:-translate-y-1 hover:shadow-lg"
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <div className="h-28 md:h-36 w-full bg-gray-200 relative overflow-hidden">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                      </div>
-                      <div className="p-1 md:p-2">
-                        <h3 className="text-xs md:text-sm font-medium truncate">
-                          {product.name}
-                        </h3>
-                        <div className="mt-1 flex justify-between items-center">
-                          <span className="text-[10px] md:text-xs text-gray-500">
-                            Recommended
-                          </span>
-                          <span className="text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 bg-blue-500 text-white rounded-full">
-                            New
-                          </span>
-                        </div>
-                      </div>
+            <h2 className="text-xl font-semibold text-center mb-6">
+              Skin Issues Analytics (Face)
+            </h2>
+            <div className="space-y-6 px-2">
+              {" "}
+              {/* Increased vertical spacing */}
+              {ALL_IMPURITIES.map((imp) => {
+                const value = analyticsMap.get(imp) || 0;
+                return (
+                  <div key={imp} className="flex items-center gap-6">
+                    {" "}
+                    {/* Increased horizontal gap */}
+                    <span className="w-28 text-sm font-light text-gray-300">
+                      {imp}
+                    </span>
+                    <div className="flex-1 bg-gray-700 rounded-full h-6 relative">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${value}%`,
+                          backgroundColor:
+                            value >= 75
+                              ? "#f87171" // red-400
+                              : value >= 50
+                              ? "#facc15" // yellow-400
+                              : "#4ade80", // green-400
+                        }}
+                      />
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <span className="w-12 text-right text-sm font-semibold text-gray-100">
+                      {value}%
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          </motion.div>
+
+          {/* Bottom-Right: Recent Products */}
+          <motion.div
+            custom={5}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            className="bg-white rounded-xl shadow-sm p-6 border"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Recent Products
+              </h2>
+              {data.recentProducts.length > 0 && (
+                <button
+                  onClick={handleSeeMore}
+                  className="text-sm text-cyan-700 hover:underline font-medium"
+                >
+                  See All
+                </button>
+              )}
+            </div>
+            <div className="space-y-4">
+              {data.recentProducts.length > 0 ? (
+                data.recentProducts.slice(0, 3).map((product) => (
+                  <div key={product.id} className="flex items-center gap-4">
+                    <img
+                      src={product.product_details?.image}
+                      alt={product.name}
+                      className="w-16 h-16 rounded-lg object-cover bg-gray-100"
+                      loading="lazy"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold text-gray-800 truncate">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {product.product_details?.area || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 italic text-center py-4">
+                  You have no saved products.
+                </p>
+              )}
+            </div>
+          </motion.div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

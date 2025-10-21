@@ -6,7 +6,7 @@ import introimg from "../assets/char.png";
 import s1 from "../assets/slide1.png";
 import s2 from "../assets/slide2.png";
 import s3 from "../assets/slide3.png";
-import supabase from "../supabase";
+import { supabase } from "../lib/supabaseClient";
 
 const slides = [
   {
@@ -32,32 +32,42 @@ const slides = [
 const IntroScreen = () => {
   const [showFeatures, setShowFeatures] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
-    const markIntroAsSeen = async () => {
-      // Get the current user's email from local storage or state
-      const userEmail = localStorage.getItem("userEmail");
-
-      if (userEmail) {
-        // Update the `has_seen_intro` field in the database
-        const { error } = await supabase
-          .from("userDetails")
-          .update({ has_seen_intro: true })
-          .eq("email", userEmail);
-
-        if (error) {
-          console.error("Error updating intro status:", error);
-        }
-      }
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
     };
 
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const markIntroAsSeen = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (user) {
+        const { error } = await supabase
+          .from("user")
+          .update({ first_time: false })
+          .eq("id", user.id);
+        if (error) console.error("Error updating intro status:", error);
+      }
+    };
     markIntroAsSeen();
   }, []);
 
   const nextSlide = () => {
     if (currentSlide === slides.length - 1) {
-      navigate("/home"); // Navigate to main app when finished
+      setTimeout(() => navigate("/lp"), 200); // small delay for UX
     } else {
       setCurrentSlide((prev) => prev + 1);
     }
@@ -67,13 +77,17 @@ const IntroScreen = () => {
     setCurrentSlide((prev) => Math.max(0, prev - 1));
   };
 
+  // Responsive breakpoints
+  const isMobile = windowSize.width < 768;
+  const isTablet = windowSize.width >= 768 && windowSize.width < 1024;
+
   return (
-    <div className="h-screen relative overflow-hidden">
+    <div className="h-screen w-full relative overflow-hidden">
       {/* Background Gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-cyan-900 to-slate-900" />
 
       {/* Content Container */}
-      <div className="relative z-10 h-full">
+      <div className="relative z-10 h-full w-full flex flex-col">
         <AnimatePresence mode="wait">
           {!showFeatures ? (
             // Welcome Screen
@@ -83,13 +97,15 @@ const IntroScreen = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.6 }}
-              className="h-full flex flex-col items-center mb-20 justify-center px-4"
+              className="h-full flex flex-col items-center justify-center px-4 sm:px-6"
             >
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
-                className="w-48 h-48 md:w-72 md:h-72 mb-12 rounded-full overflow-hidden"
+                className={`${
+                  isMobile ? "w-40 h-40" : "w-48 h-48 md:w-64 md:h-64"
+                } mb-8 sm:mb-12 rounded-full overflow-hidden`}
               >
                 <img
                   src={introimg}
@@ -97,22 +113,29 @@ const IntroScreen = () => {
                   className="w-full h-full object-cover"
                 />
               </motion.div>
+
               <motion.h1
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
-                className="text-4xl md:text-6xl font-bold text-white mb-6 text-center max-w-3xl leading-tight"
+                className={`${
+                  isMobile ? "text-2xl" : "text-3xl md:text-4xl lg:text-5xl"
+                } font-bold text-white mb-4 sm:mb-6 text-center max-w-3xl leading-tight px-2`}
               >
                 Welcome to Insecurity Free!
               </motion.h1>
+
               <motion.p
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6, duration: 0.6 }}
-                className="text-xl md:text-2xl text-cyan-100 mb-12 text-center"
+                className={`${
+                  isMobile ? "text-base" : "text-lg md:text-xl lg:text-2xl"
+                } text-cyan-100 mb-8 sm:mb-12 text-center px-4`}
               >
                 Your Personal Glow Up Companion
               </motion.p>
+
               <motion.button
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -120,10 +143,14 @@ const IntroScreen = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowFeatures(true)}
-                className="fixed bottom-15 right-30 px-15 py-4 text-lg bg-gradient-to-r from-cyan-600 via-cyan-500 to-cyan-400 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center"
+                className={`${
+                  isMobile ? "px-6 py-3 text-sm" : "px-8 py-4 text-lg"
+                } fixed bottom-8 sm:bottom-12 bg-gradient-to-r from-cyan-600 via-cyan-500 to-cyan-400 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center`}
               >
                 Proceed
-                <ChevronRight className="w-8 h-6 ml-2" />
+                <ChevronRight
+                  className={`${isMobile ? "w-4 h-4" : "w-6 h-6"} ml-2`}
+                />
               </motion.button>
             </motion.div>
           ) : (
@@ -134,7 +161,7 @@ const IntroScreen = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.6 }}
-              className="h-full flex flex-col justify-center mt-10 px-6 md:px-12 lg:px-24"
+              className="h-full flex flex-col justify-center px-4 sm:px-6 md:px-8 lg:px-12 xl:px-24"
             >
               <div className="max-w-7xl mx-auto w-full">
                 <AnimatePresence mode="wait">
@@ -144,41 +171,62 @@ const IntroScreen = () => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -100 }}
                     transition={{ duration: 0.6, ease: "easeInOut" }}
-                    className="grid md:grid-cols-2 gap-25 items-center"
+                    className={`grid ${
+                      isMobile ? "grid-cols-1" : "grid-cols-2"
+                    } gap-6 md:gap-12 items-center`}
                   >
-                    {/* Text Content */}
-                    <div className="text-white space-y-8 order-2 md:order-1">
-                      <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
+                    {/* Text Content - Order changes on mobile */}
+                    <div
+                      className={`text-white space-y-4 sm:space-y-6 md:space-y-8 ${
+                        isMobile ? "order-2 mt-6" : "order-1"
+                      }`}
+                    >
+                      <h2
+                        className={`${
+                          isMobile
+                            ? "text-xl"
+                            : "text-2xl sm:text-3xl md:text-4xl"
+                        } font-bold leading-tight`}
+                      >
                         {slides[currentSlide].header}
                       </h2>
-                      <p className="text-lg md:text-xl text-cyan-100 leading-relaxed">
+                      <p
+                        className={`${
+                          isMobile
+                            ? "text-sm"
+                            : "text-base sm:text-lg md:text-xl"
+                        } text-cyan-100 leading-relaxed`}
+                      >
                         {slides[currentSlide].description}
                       </p>
                     </div>
 
-                    {/* Image */}
+                    {/* Image - Order changes on mobile */}
                     <motion.div
-                      className="order-1 md:order-2"
-                      whileHover={{ scale: 1.02 }}
+                      className={`${isMobile ? "order-1" : "order-2"}`}
+                      whileHover={{ scale: isMobile ? 1 : 1.02 }}
                       transition={{ duration: 0.3 }}
                     >
                       <img
                         src={slides[currentSlide].image}
                         alt={slides[currentSlide].header}
-                        className="rounded-2xl shadow-2xl w-full aspect-video object-cover"
+                        className="rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl w-full aspect-video object-cover"
                       />
                     </motion.div>
                   </motion.div>
                 </AnimatePresence>
 
                 {/* Navigation Controls */}
-                <div className="flex flex-col items-center space-y-10">
+                <div className="flex flex-col items-center space-y-4 sm:space-y-6 mt-8 sm:mt-12">
                   {/* Progress Dots */}
-                  <div className="flex space-x-4 mt-15">
+                  <div className="flex space-x-3 sm:space-x-4">
                     {slides.map((_, index) => (
-                      <div
+                      <button
                         key={index}
-                        className={`w-4 h-4 rounded-full transition-all duration-500 ${
+                        onClick={() => setCurrentSlide(index)}
+                        className={`${
+                          isMobile ? "w-3 h-3" : "w-4 h-4"
+                        } rounded-full transition-all duration-500 ${
                           currentSlide === index
                             ? "bg-cyan-400 scale-110"
                             : "border-2 border-cyan-400"
@@ -188,15 +236,21 @@ const IntroScreen = () => {
                   </div>
 
                   {/* Navigation Buttons */}
-                  <div className="flex justify-center space-x-20 mt-5">
+                  <div className="flex justify-center space-x-4 sm:space-x-6 w-full max-w-md">
                     {currentSlide > 0 && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={prevSlide}
-                        className="px-15 py-3 text-lg bg-gradient-to-r from-gray-700 via-gray-600 to-gray-500 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center"
+                        className={`${
+                          isMobile ? "px-4 py-2 text-sm" : "px-6 py-3 text-base"
+                        } flex-1 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-500 rounded-full text-white shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center`}
                       >
-                        <ArrowLeft className="w-5 h-5 mr-2" />
+                        <ArrowLeft
+                          className={`${
+                            isMobile ? "w-4 h-4" : "w-5 h-5"
+                          } mr-1 sm:mr-2`}
+                        />
                         Back
                       </motion.button>
                     )}
@@ -204,17 +258,27 @@ const IntroScreen = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={nextSlide}
-                      className="px-15 py-3 text-lg bg-gradient-to-r from-cyan-600 via-cyan-500 to-cyan-400 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center"
+                      className={`${
+                        isMobile ? "px-4 py-2 text-sm" : "px-6 py-3 text-base"
+                      } flex-1 bg-gradient-to-r from-cyan-600 via-cyan-500 to-cyan-400 rounded-full text-white shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center`}
                     >
                       {currentSlide === slides.length - 1 ? (
                         <>
                           Start Now
-                          <ChevronRight className="w-5 h-5 ml-2" />
+                          <ChevronRight
+                            className={`${
+                              isMobile ? "w-4 h-4" : "w-5 h-5"
+                            } ml-1 sm:ml-2`}
+                          />
                         </>
                       ) : (
                         <>
                           Next
-                          <ArrowRight className="w-5 h-5 ml-2" />
+                          <ArrowRight
+                            className={`${
+                              isMobile ? "w-4 h-4" : "w-5 h-5"
+                            } ml-1 sm:ml-2`}
+                          />
                         </>
                       )}
                     </motion.button>
