@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import logo from "../assets/logo.webp";
 import { useLogout } from "../Pages/hooks/hooks";
 
-const Navbar = () => {
+const Navbar = ({session}) => {
   const [isOpen, setIsOpen] = useState(false);
   const logout = useLogout();
 
