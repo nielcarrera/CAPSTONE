@@ -12,7 +12,7 @@ const ALL_IMPURITIES = [
   "Acne",
   "Blackheads",
   "Wrinkles",
-  "Dark Circles",
+  "Darkcircles",
 ];
 
 // --- HELPER FUNCTION ---

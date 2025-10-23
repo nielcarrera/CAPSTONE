@@ -99,7 +99,7 @@ const Register = () => {
       formData.email.trim() !== "" &&
       allPasswordCriteriaMet &&
       formData.password === formData.confirmPassword &&
-      Number(formData.age) >= 13 && // Age check
+      Number(formData.age) >= 16 && // Age check
       formData.gender !== "" &&
       agree;
 

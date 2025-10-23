@@ -1,172 +1,235 @@
-import { useEffect, useState, useMemo } from "react";
-import { X } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import { fetchFaceProductToProductRoutines } from "../../service/routineproductsService";
-import { ProductCard } from "../Products/ProductCards"; // Import the ProductCard component
+import {
+  fetchFaceProducts,
+  fetchUserSavedProductIds,
+} from "../../service/productService";
+import { fetchBodyProducts } from "../../service/bodyProductService";
+import { X } from "lucide-react";
 
-const ProductListDialog = ({ open, onClose, onSelectProduct }) => {
-  const [userProducts, setUserProducts] = useState([]);
+//=================================================================
+// 1. COMPACT PRODUCT CARD COMPONENT (Integrated)
+//=================================================================
+const severityClasses = {
+  mild: "bg-green-100 text-green-800",
+  moderate: "bg-yellow-100 text-yellow-800",
+  severe: "bg-red-100 text-red-800",
+  default: "bg-gray-100 text-gray-800",
+};
+
+const CompactProductCard = ({ product, onClick }) => (
+  <div
+    className="bg-white rounded-md border-cyan-300 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col border h-full"
+    onClick={onClick}
+  >
+    <div className="relative h-28 overflow-hidden">
+      <img
+        src={product.image}
+        alt={product.name}
+        className="w-full h-full object-cover"
+        loading="lazy"
+      />
+    </div>
+    <div className="p-2 flex flex-col flex-grow">
+      <span className="text-xs text-gray-500 mb-1 line-clamp-1">
+        {product.brand}
+      </span>
+      <h3 className="font-semibold text-sm leading-tight mb-2 line-clamp-2 flex-grow">
+        {product.name}
+      </h3>
+      <div className="flex flex-wrap gap-1 mt-1">
+        <span
+          className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+            severityClasses[product.severity] || severityClasses.default
+          }`}
+        >
+          {product.severity}
+        </span>
+        <span className="text-[10px] font-medium px-1.5 py-0.5 bg-cyan-100 text-cyan-800 rounded-full">
+          {product.type}
+        </span>
+      </div>
+    </div>
+  </div>
+);
+
+//=================================================================
+// 2. COMPACT FILTERS COMPONENT (Integrated)
+//=================================================================
+const productTypes = [
+  "all",
+  "cleanser",
+  "serum",
+  "exfoliant",
+  "moisturizer",
+  "toner",
+  "treatment",
+];
+const severityTypes = ["all", "mild", "moderate", "severe"];
+const capitalize = (str) =>
+  str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
+
+const CompactFilterSelect = ({ label, value, options, onChange }) => (
+  <div>
+    <label className="block text-xs font-medium text-gray-600">{label}</label>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="mt-1 block w-full pl-3 pr-8 py-1.5 text-xs border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
+    >
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {capitalize(option)}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+const CompactFilters = ({ filters, onFilterChange }) => (
+  <div className="px-2 pb-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
+      <div>
+        <label className="block text-xs font-medium text-gray-600">Area</label>
+        <div className="mt-1 flex border rounded-md overflow-hidden">
+          {["face", "body"].map((area) => (
+            <button
+              key={area}
+              onClick={() => onFilterChange("area", area)}
+              className={`px-3 py-1.5 text-xs w-full transition-colors ${
+                filters.area === area
+                  ? "bg-cyan-700 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {capitalize(area)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <CompactFilterSelect
+        label="Product Type"
+        value={filters.type}
+        options={productTypes}
+        onChange={(v) => onFilterChange("type", v)}
+      />
+
+      <CompactFilterSelect
+        label="Severity"
+        value={filters.severity}
+        options={severityTypes}
+        onChange={(v) => onFilterChange("severity", v)}
+      />
+    </div>
+  </div>
+);
+
+//=================================================================
+// 3. MAIN PRODUCT SELECT DROPDOWN COMPONENT
+//=================================================================
+const ProductSelectDropdown = ({ open, onClose, onSelectProduct }) => {
+  const [allSavedProducts, setAllSavedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [filters, setFilters] = useState({
-    type: "all",
-    impurity: "all",
-    skinType: "all",
     area: "face",
+    type: "all",
+    severity: "all",
   });
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    if (!open) return;
+
+    const loadSavedProducts = async () => {
       setLoading(true);
+      setError(null);
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not found.");
 
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
+        const savedIds = await fetchUserSavedProductIds(user.id);
+        if (!savedIds || savedIds.length === 0) {
+          setAllSavedProducts([]);
+          setLoading(false);
+          return;
+        }
 
-      if (error) {
-        console.error("Error fetching user:", error);
-        setUserProducts([]);
-        setLoading(false);
-        return;
-      }
-
-      if (user) {
-        // Fetch products only once. The service handles the URL formatting.
-        const fetchedProducts = await fetchFaceProductToProductRoutines(
-          user.id
+        const [faceProds, bodyProds] = await Promise.all([
+          fetchFaceProducts(),
+          fetchBodyProducts(),
+        ]);
+        const allProducts = [...(faceProds || []), ...(bodyProds || [])];
+        const userSavedProducts = allProducts.filter((p) =>
+          savedIds.includes(p.id)
         );
-        console.log("✅ Products fetched from DB:", fetchedProducts);
-        setUserProducts(fetchedProducts);
-      } else {
-        console.warn("No user logged in, cannot fetch saved products.");
-        setUserProducts([]);
+        setAllSavedProducts(userSavedProducts);
+      } catch (err) {
+        setError("Failed to load your saved products.");
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    if (open) {
-      fetchProducts();
-    }
+    loadSavedProducts();
   }, [open]);
 
-  console.log("🧪 Current filters:", filters);
-
   const filteredProducts = useMemo(() => {
-    return userProducts.filter((product) => {
-      const matchesArea =
-        filters.area === "all" || product.area === filters.area;
-      const matchesType =
-        filters.type === "all" || product.type === filters.type;
-      const matchesImpurity =
-        filters.impurity === "all" ||
-        product.impurity === filters.impurity ||
-        filters.area === "body";
-      const matchesSkinType =
-        filters.skinType === "all" ||
-        product.skinType === filters.skinType ||
-        filters.area === "body";
-
-      return matchesArea && matchesType && matchesImpurity && matchesSkinType;
-    });
-  }, [filters, userProducts]);
-
-  console.log("👀 Filtered products to display:", filteredProducts.length);
-
-  const handleProductClick = async (product) => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("No user logged in");
-        onSelectProduct(product);
-        onClose();
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("user_saved_products")
-        .select(
-          `
-        product_id,
-        face_products_view:product_id(*),
-        v_body_products:product_id(*)
-      `
-        )
-        .eq("user_id", user.id)
-        .eq("product_id", product.id)
-        .single();
-
-      if (error) {
-        console.error("Error fetching product usage:", error);
-        onSelectProduct(product);
-        onClose();
-        return;
-      }
-
-      // Get product info from the proper view
-      const viewData = data.face_products_view || data.v_body_products || {};
-
-      // Merge usage into product object
-      const updatedProduct = {
-        ...product,
-        usage: viewData.usage || product.usage || "-",
-      };
-
-      onSelectProduct(updatedProduct);
-      onClose();
-    } catch (err) {
-      console.error("Unexpected error fetching usage:", err);
-      onSelectProduct(product);
-      onClose();
+    let result = allSavedProducts.filter((p) => p.area === filters.area);
+    if (filters.type !== "all") {
+      result = result.filter((p) => p.type === filters.type);
     }
+    if (filters.severity !== "all") {
+      result = result.filter((p) => p.severity === filters.severity);
+    }
+    return result;
+  }, [allSavedProducts, filters]);
+
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div
-        className="bg-white rounded-lg w-full max-w-6xl border relative flex flex-col"
-        style={{ height: "80vh" }}
-      >
-        <div className="p-6 flex-grow overflow-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4  bg-opacity-50 backdrop-blur-sm">
+      <div className="relative bg-white rounded-lg max-w-3xl w-full max-h-[90vh] flex flex-col p-4 border shadow-xl">
+        <div className="flex justify-between items-center mb-2 px-2">
+          <h3 className="text-lg font-semibold">Select a Product</h3>
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
 
-          <h2 className="text-xl font-semibold mb-4">Select Product</h2>
+        <CompactFilters filters={filters} onFilterChange={handleFilterChange} />
 
-          {/* Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-            {/* ... your filter selects ... */}
-          </div>
-
-          {/* Product Grid */}
-
+        <div className="flex-grow overflow-auto pr-2">
           {loading ? (
-            <div className="flex justify-center items-center h-full">
-              <p>Loading products...</p>
-            </div>
+            <p className="text-center py-8">Loading your products...</p>
+          ) : error ? (
+            <p className="text-red-500 text-center py-8">{error}</p>
           ) : filteredProducts.length === 0 ? (
-            <div className="flex justify-center items-center h-full">
-              <p className="text-gray-500 text-lg">No products saved</p>
-            </div>
+            <p className="text-center text-gray-500 py-8">
+              {allSavedProducts.length === 0
+                ? "You have no saved products yet."
+                : "No products match your filters."}
+            </p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => {
-                console.log("🖼️ Product image URL:", product.image);
-                return (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onClick={() => handleProductClick(product)}
-                  />
-                );
-              })}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {filteredProducts.map((product) => (
+                <CompactProductCard
+                  key={product.id}
+                  product={product}
+                  onClick={() => onSelectProduct(product)}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -175,4 +238,4 @@ const ProductListDialog = ({ open, onClose, onSelectProduct }) => {
   );
 };
 
-export default ProductListDialog;
+export default ProductSelectDropdown;

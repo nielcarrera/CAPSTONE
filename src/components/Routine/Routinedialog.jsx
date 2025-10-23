@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // Import useRef
 import { Plus, X, Trash, Edit } from "lucide-react";
-import ProductListDialog from "./ProductListDialog";
+import ProductSelectDropdown from "./ProductListDialog";
 import { saveRoutine, updateRoutine } from "../../service/routineService";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -18,68 +18,88 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
     duration: 10,
   });
 
-  const [steps, setSteps] = useState([
-    { id: 1, productId: null, productName: "", usage: "" },
-  ]);
-
-  const [showProductDialog, setShowProductDialog] = useState(false);
+  const [steps, setSteps] = useState([]);
+  const [showProductSelect, setShowProductSelect] = useState(false);
   const [currentStepId, setCurrentStepId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-  const [showErrors, setShowErrors] = useState(false); // ✅ new flag
+  const [showErrors, setShowErrors] = useState(false);
 
-  // ✅ Initialize or reset routine
+  // ✅ FIX 1: Use a ref to create a stable, unique ID counter.
+  // This counter persists across re-renders without causing them.
+  const stepIdCounter = useRef(0);
+  const getUniqueStepId = () => {
+    stepIdCounter.current += 1;
+    return stepIdCounter.current;
+  };
+
   useEffect(() => {
-    if (initialRoutineData) {
-      setRoutineData({
-        type: initialRoutineData.type || "Morning",
-        name: initialRoutineData.name || "",
-        time: initialRoutineData.time || timeOptions[7],
-        duration: initialRoutineData.duration || 10,
-      });
+    if (open) {
+      // Reset the counter every time the dialog opens to keep IDs small
+      stepIdCounter.current = 0;
 
-      const mappedSteps = initialRoutineData.steps.map((step, index) => ({
-        id: index + 1,
-        productId: step.productId || null,
-        productName: step.product || "",
-        usage: step.usage || "",
-      }));
-      setSteps([{ id: 1, productId: null, productName: "", usage: "" }]);
+      if (initialRoutineData) {
+        setRoutineData({
+          id: initialRoutineData.id,
+          type: initialRoutineData.type || "Morning",
+          name: initialRoutineData.name || "",
+          time: initialRoutineData.time || timeOptions[7],
+          duration: initialRoutineData.duration || 10,
+        });
 
-      setSteps(
-        mappedSteps.length
-          ? mappedSteps
-          : [{ id: 1, productId: null, productName: "", note: "" }]
-      );
-    } else {
-      setRoutineData({
-        type: "Morning",
-        name: "",
-        time: timeOptions[7],
-        duration: 10,
-      });
-      setSteps([{ id: 1, productId: null, productName: "", note: "" }]);
+        const mappedSteps = initialRoutineData.steps.map((step) => ({
+          id: getUniqueStepId(), // ✅ FIX 2: Assign a guaranteed unique ID
+          productId: step.productId || null,
+          productName: step.product || "",
+          usage: step.usage || "",
+        }));
+
+        setSteps(
+          mappedSteps.length > 0
+            ? mappedSteps
+            : [
+                {
+                  id: getUniqueStepId(),
+                  productId: null,
+                  productName: "",
+                  usage: "",
+                },
+              ]
+        );
+      } else {
+        setRoutineData({
+          type: "Morning",
+          name: "",
+          time: timeOptions[7],
+          duration: 10,
+        });
+        setSteps([
+          {
+            id: getUniqueStepId(),
+            productId: null,
+            productName: "",
+            usage: "",
+          },
+        ]);
+      }
+      setValidationErrors({});
+      setShowErrors(false);
     }
-  }, [initialRoutineData]);
+  }, [open, initialRoutineData]);
 
-  // ✅ Validate only when user submits
   const validateRoutine = () => {
     let errors = {};
     let isValid = true;
-
     if (!routineData.name.trim()) {
       errors.name = "Routine name is required.";
       isValid = false;
     }
-
-    // Validate steps only if no productId and no productName
-    steps.forEach((step, index) => {
+    steps.forEach((step) => {
       if (!step.productId && !step.productName) {
-        errors[`step_${index}`] = "Please select a product.";
+        errors[`step_${step.id}`] = "Please select a product.";
         isValid = false;
       }
     });
-
     setValidationErrors(errors);
     return isValid;
   };
@@ -89,9 +109,10 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
   };
 
   const addStep = () => {
+    // ✅ FIX 3: Use the counter function to add a new step with a unique ID
     setSteps([
       ...steps,
-      { id: steps.length + 1, productId: null, productName: "", note: "" },
+      { id: getUniqueStepId(), productId: null, productName: "", usage: "" },
     ]);
   };
 
@@ -108,13 +129,11 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
               productId: product.id,
               productName: product.name,
               usage: product.usage || step.usage || "",
-              // ✅ auto-fill usage if available
             }
           : step
       )
     );
-
-    setShowProductDialog(false);
+    setShowProductSelect(false);
   };
 
   const handleUsageChange = (id, value) => {
@@ -124,44 +143,39 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
   };
 
   const handleSave = async () => {
-    setShowErrors(true); // ✅ show validation errors only after user attempts save
+    setShowErrors(true);
     if (!validateRoutine()) return;
 
     setIsSubmitting(true);
     try {
       const {
         data: { user },
-        error,
       } = await supabase.auth.getUser();
-
-      if (error || !user) {
+      if (!user) {
         alert("You must be logged in to save a routine.");
         setIsSubmitting(false);
         return;
       }
 
-      const currentUserId = user.id;
-
       const routineToSave = {
         ...routineData,
         steps: steps
           .filter((s) => s.productId)
-          .map(({ id, productId, usage }) => ({
-            stepNumber: id,
+          // The mapping here remains correct, using the index for the database stepNumber
+          .map(({ productId, usage }, index) => ({
+            stepNumber: index + 1,
             product: productId,
             usage,
           })),
-        id: initialRoutineData ? initialRoutineData.id : null,
       };
 
-      if (initialRoutineData) {
-        await updateRoutine(routineToSave, currentUserId);
+      if (routineToSave.id) {
+        await updateRoutine(routineToSave, user.id);
         alert("Routine updated successfully!");
       } else {
-        await saveRoutine(routineToSave, currentUserId);
+        await saveRoutine(routineToSave, user.id);
         alert("Routine saved successfully!");
       }
-
       onOpenChange(false);
       onSave(routineToSave);
     } catch (err) {
@@ -188,10 +202,7 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
               >
                 <X className="w-5 h-5" />
               </button>
-
               <h2 className="text-xl font-semibold mb-6">{dialogTitle}</h2>
-
-              {/* Routine Info */}
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -210,7 +221,6 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
                       <option>Custom</option>
                     </select>
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium mb-1">
                       Routine Name
@@ -235,8 +245,6 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
                     )}
                   </div>
                 </div>
-
-                {/* Steps */}
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Routine Steps
@@ -255,7 +263,6 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
                             </button>
                           )}
                         </div>
-
                         <div className="space-y-3">
                           <div>
                             <label className="block text-sm text-gray-600 mb-1">
@@ -268,12 +275,12 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
                                 readOnly
                                 onClick={() => {
                                   setCurrentStepId(step.id);
-                                  setShowProductDialog(true);
+                                  setShowProductSelect(true);
                                 }}
                                 placeholder="Select your product"
-                                className={`w-full rounded border p-2 pr-10 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
+                                className={`w-full rounded border p-2 pr-10 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer ${
                                   showErrors &&
-                                  validationErrors[`step_${index}`]
+                                  validationErrors[`step_${step.id}`]
                                     ? "border-red-500"
                                     : "border-gray-300"
                                 }`}
@@ -281,7 +288,7 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
                               <button
                                 onClick={() => {
                                   setCurrentStepId(step.id);
-                                  setShowProductDialog(true);
+                                  setShowProductSelect(true);
                                 }}
                                 className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500"
                               >
@@ -289,13 +296,12 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
                               </button>
                             </div>
                             {showErrors &&
-                              validationErrors[`step_${index}`] && (
+                              validationErrors[`step_${step.id}`] && (
                                 <p className="text-red-500 text-xs mt-1">
-                                  {validationErrors[`step_${index}`]}
+                                  {validationErrors[`step_${step.id}`]}
                                 </p>
                               )}
                           </div>
-
                           <div>
                             <label className="block text-sm text-gray-600 mb-1">
                               Usage
@@ -314,7 +320,6 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
                         </div>
                       </div>
                     ))}
-
                     <button
                       type="button"
                       onClick={addStep}
@@ -324,8 +329,6 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
                     </button>
                   </div>
                 </div>
-
-                {/* Buttons */}
                 <div className="flex justify-end gap-3 pt-4">
                   <button
                     onClick={() => onOpenChange(false)}
@@ -347,9 +350,9 @@ const RoutineDialog = ({ open, onOpenChange, onSave, initialRoutineData }) => {
         </div>
       )}
 
-      <ProductListDialog
-        open={showProductDialog}
-        onClose={() => setShowProductDialog(false)}
+      <ProductSelectDropdown
+        open={showProductSelect}
+        onClose={() => setShowProductSelect(false)}
         onSelectProduct={handleProductSelect}
       />
     </>

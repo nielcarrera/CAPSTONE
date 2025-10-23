@@ -82,11 +82,11 @@ const AboutInsecurityFree = () => {
             <div className="bg-white p-6 rounded-xl shadow-lg text-center hover:shadow-xl transition duration-300">
               <Zap className="w-10 h-10 text-blue-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900">
-                Skin Type Identification
+                Skin Profile Identification
               </h3>
               <p className="mt-2 text-gray-600">
-                Quickly and accurately determine your specific skin type to
-                guide your routine.
+                Quickly and accurately determine your specific skin type and
+                skintone to guide your routine.
               </p>
             </div>
 

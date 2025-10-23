@@ -29,7 +29,7 @@ export const skinIssues = {
     description:
       "Fine lines and creases in the skin due to aging or sun damage.",
   },
-  "Dark Circles": {
+  Darkcircles: {
     image: darkcircles,
     description:
       "Darkened areas under the eyes due to thinning skin or blood vessel visibility.",
@@ -101,7 +101,7 @@ export const skinIssueDetails = {
       },
     ],
   },
-  "Dark Circles": {
+  Darkcircles: {
     cause: "Thinning skin under eyes, lack of sleep, or genetics.",
     prevention:
       "Get adequate sleep, use caffeine-based eye creams, protect from sun.",

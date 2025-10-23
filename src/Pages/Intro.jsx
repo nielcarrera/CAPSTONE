@@ -13,7 +13,7 @@ const slides = [
     image: s1,
     header: "Track Your Skin Impurities and Identify Your Skin Type",
     description:
-      "Start tracking skin impurities in different type of bodies and identifying skintype by simply using your camera phones.",
+      "Start tracking skin impurities in different type of bodies and identifying skin profile by simply using your camera phones.",
   },
   {
     image: s2,

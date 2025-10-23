@@ -21,10 +21,7 @@ import { loadAnalysisData } from "../service/dashboard/analysisdataService";
 import { useAuth } from "../context/AuthProvider";
 import { getColorByValue } from "../Pages/utils/DummyData";
 import { skinIssues } from "../Pages/utils/SkinIssueconfig"; // Using single source of truth for configs
-import {
-  computeSkinScore,
-  enrichImpurities,
-} from "../Pages/utils/SkinAnalytics";
+import { enrichImpurities } from "../Pages/utils/SkinAnalytics";
 
 // Import the single source of truth for tour logic
 import { useTour } from "../Pages/hooks/Dashboard/usetour";
@@ -62,7 +59,6 @@ const Dashboard = () => {
   );
 
   const topThreeImpurities = sortedImpurities.slice(0, 3);
-  const skinScore = computeSkinScore(currentData.impurities);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -72,8 +68,6 @@ const Dashboard = () => {
       if (dates.length > 0) setSelectedDate(dates[0]);
     });
   }, [currentUser]);
-
-  const handleShareScore = () => alert(`Sharing skin score: ${skinScore}`);
 
   const formatDateFormal = (dateString) => {
     if (!dateString) return "";
