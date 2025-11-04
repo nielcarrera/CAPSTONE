@@ -200,7 +200,7 @@ const Home = () => {
         </section>
 
         {/* Routine Builder Section */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <section className="mb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="flex justify-center lg:justify-start">
             <div className="w-full max-w-md overflow-hidden rounded-xl shadow-xl">
               <img
@@ -225,6 +225,34 @@ const Home = () => {
             >
               Build Your Routine
             </button>
+          </div>
+        </section>
+
+        {/* NEW: Administrator Panel Section */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6">
+              Access Administrator Panel
+            </h2>
+            <p className="text-gray-600 text-lg mb-8">
+              Manage system settings, user accounts, and product databases from
+              a secure administrative dashboard.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="bg-cyan-800 text-white px-8 py-3 font-semibold rounded-lg hover:bg-cyan-800 transition-colors"
+            >
+              Go to Admin Panel
+            </button>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <div className="w-full max-w-md overflow-hidden rounded-xl shadow-xl">
+              <img
+                src={home1}
+                alt="Admin panel"
+                className="w-full h-auto object-cover"
+              />
+            </div>
           </div>
         </section>
       </main>

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { FaApple, FaGooglePlay } from "react-icons/fa";
 import phone from "../assets/phone.jpg";
 import qr from "../assets/qr.png";
-import Navbar from "../components/Navbar";
+import NavbarSS from "../components/NavbarSplashScreen";
 
 const Download = () => {
   return (
@@ -12,7 +12,7 @@ const Download = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <Navbar></Navbar>
+      <NavbarSS></NavbarSS>
       <div className="mt-20 max-w-6xl w-full h-full bg-white rounded-xl shadow-lg p-12 flex flex-col md:flex-row items-center space-y-8 md:space-y-0 md:space-x-14">
         {/* Text Section */}
         <div className="flex-1 text-center md:text-left">

@@ -246,6 +246,15 @@ const Login = () => {
               >
                 {loading ? "Signing in..." : "Sign in"}
               </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/admin")}
+                className="bg-gray-600 hover:bg-gray-500 p-2.5 rounded text-sm font-medium mt-2"
+              >
+                Go to Admin Panel
+              </button>
+
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-600"></div>

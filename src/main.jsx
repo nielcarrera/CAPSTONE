@@ -20,14 +20,17 @@ import LandingPage from "./Pages/LandingPage";
 import AboutInsecurityFree from "./Pages/About";
 import Product from "./Pages/Product";
 import BodyImpurityDashboard from "./Pages/BodyImpurityDashboard";
+
+import AccountManagement from "./Pages/Admin/AccountManagement";
 import ReccomendedProductsDialog from "./components/ReccomendedProductsDialog";
+import AdminPanel from "./Pages/Admin/AdminPanel";
+import AdminProduct from "./Pages/Admin/ProductManagement";
 
 const router = createBrowserRouter([
   { path: "/", element: <Home></Home> },
   { path: "home/", element: <Home></Home> },
   { path: "/lp", element: <LandingPage></LandingPage> },
   { path: "/legal", element: <Legal></Legal> },
-
   { path: "/about", element: <AboutInsecurityFree></AboutInsecurityFree> },
   { path: "/Login", element: <Login></Login> },
   { path: "/register", element: <Register></Register> },
@@ -36,13 +39,22 @@ const router = createBrowserRouter([
   { path: "/db", element: <Dashboard></Dashboard> },
   { path: "/product", element: <Product></Product> },
   { path: "/body", element: <BodyImpurityDashboard></BodyImpurityDashboard> },
-
   { path: "/profile", element: <Profile></Profile> },
   { path: "/skintype", element: <Skintype></Skintype> },
   { path: "/arms", element: <Arms></Arms> },
   { path: "/legs", element: <Legs></Legs> },
   { path: "/back", element: <Back></Back> },
   { path: "/routine", element: <Routine></Routine> },
+
+  {
+    path: "/admin",
+    element: <AdminPanel />,
+    children: [
+      { index: true, element: <AccountManagement /> }, // default page
+      { path: "accounts", element: <AccountManagement /> },
+      { path: "products", element: <AdminProduct /> },
+    ],
+  },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
