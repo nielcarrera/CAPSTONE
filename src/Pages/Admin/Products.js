@@ -2,15 +2,13 @@ import { supabase } from "../../supabase";
 
 // Fetch face products only
 export const fetchFaceProducts = async () => {
-  const { data, error } = await supabase
-    .from("face_products") // <-- change to your actual table name
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabase.rpc("fetch_face_products");
 
   if (error) {
-    console.error("Error fetching face products:", error);
+    console.error("❌ Error fetching face products:", error);
     return [];
   }
+
   return data;
 };
 
