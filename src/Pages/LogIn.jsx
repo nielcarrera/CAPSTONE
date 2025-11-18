@@ -110,7 +110,7 @@ const Login = () => {
       // Check if user has seen intro (you might want to adjust this logic)
       const { data: userData, error: userError } = await supabase
         .from("user")
-        .select("first_time")
+        .select("first_time, role")
         .eq("id", session.user.id)
         .single();
 
@@ -125,7 +125,13 @@ const Login = () => {
 
         navigate("/intro");
       } else {
-        navigate("/lp");
+        console.log("User Data Role:", userData.role);
+        if(userData.role === 'Admin'){
+          navigate("/admin");
+        } else {
+          console.log("Is not admin");
+          navigate("/lp");
+        }
       }
 
       toast.success("Login successful!", {

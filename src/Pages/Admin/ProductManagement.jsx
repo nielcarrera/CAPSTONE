@@ -13,9 +13,17 @@ import {
   Square, // Alternative for Body icon
 } from "lucide-react";
 import ProductModal from "./Components/ProductModal";
-import { fetchFaceProducts } from "./Products";
+// Import ALL our API functions
+import {
+  fetchFaceProducts,
+  fetchBodyProducts,
+  upsertFaceProduct,
+  upsertBodyProduct,
+  deleteProduct,
+  setProductIngredients, // <-- IMPORT THE NEW FUNCTION
+} from "./Products";
 
-// Predefined filter options
+// ... (Predefined filter options are unchanged) ...
 const productTypes = [
   "all",
   "cleanser",
@@ -25,9 +33,7 @@ const productTypes = [
   "toner",
   "treatment",
 ];
-
 const severityTypes = ["all", "mild", "moderate", "severe"];
-
 const skinImpurities = [
   "all",
   "redness",
@@ -36,85 +42,11 @@ const skinImpurities = [
   "darkcircles",
   "acne",
 ];
-
 const skinTypes = ["all", "normal", "oily", "dry", "sensitive"];
-
 const bodyParts = ["all", "arms", "legs", "back", "chest", "hands", "feet"];
 
-// Mock data for face products
-const mockFaceProducts = [
-  {
-    id: 1,
-    type: "cleanser",
-    name: "Gentle Foaming Cleanser",
-    description:
-      "A gentle foaming cleanser that removes impurities without stripping skin",
-    severity: "mild",
-    area: "face",
-    image: "/images/cleanser.jpg",
-    ingredients: ["Glycerin", "Aloe Vera", "Chamomile Extract"],
-    skinType: "all",
-    impurity: "oil",
-    cautions: ["Avoid eye area"],
-    usage: "Use morning and evening",
-    brand: "SkinCare Co",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    type: "serum",
-    name: "Vitamin C Brightening Serum",
-    description: "Antioxidant-rich serum for brightening and even skin tone",
-    severity: "moderate",
-    area: "face",
-    image: "/images/serum.jpg",
-    ingredients: ["Vitamin C", "Hyaluronic Acid", "Ferulic Acid"],
-    skinType: "normal,dry",
-    impurity: "hyperpigmentation",
-    cautions: ["Use sunscreen daily"],
-    usage: "Apply 2-3 drops in the morning",
-    brand: "Glow Labs",
-    createdAt: "2024-02-20",
-  },
-];
 
-// Mock data for body products
-const mockBodyProducts = [
-  {
-    id: 3,
-    type: "lotion",
-    name: "Hydrating Body Lotion",
-    description: "Deeply moisturizing lotion for dry skin",
-    area: "body",
-    image: "/images/lotion.jpg",
-    ingredients: ["Shea Butter", "Coconut Oil", "Vitamin E"],
-    skinType: "dry",
-    impurity: "dryness",
-    cautions: [],
-    usage: "Apply daily after shower",
-    bodypart: "all",
-    brand: "BodyCare",
-    createdAt: "2024-03-10",
-  },
-  {
-    id: 4,
-    type: "scrub",
-    name: "Exfoliating Body Scrub",
-    description: "Gentle exfoliating scrub for smooth skin",
-    area: "body",
-    image: "/images/scrub.jpg",
-    ingredients: ["Sugar", "Jojoba Oil", "Essential Oils"],
-    skinType: "normal",
-    impurity: "roughness",
-    cautions: ["Not for sensitive skin"],
-    usage: "Use 2-3 times weekly",
-    bodypart: "arms,legs",
-    brand: "BodyCare",
-    createdAt: "2024-03-15",
-  },
-];
-
-// Filter Panel Component
+// ... (FilterPanel component is unchanged) ...
 const FilterPanel = ({
   showFilters,
   filters,
@@ -183,10 +115,13 @@ const FilterPanel = ({
   );
 };
 
+
 const ProductManagement = () => {
+  // ... (All states are unchanged) ...
   const [faceProducts, setFaceProducts] = useState([]);
   const [loadingFace, setLoadingFace] = useState(false);
-  const [bodyProducts, setBodyProducts] = useState(mockBodyProducts);
+  const [bodyProducts, setBodyProducts] = useState([]);
+  const [loadingBody, setLoadingBody] = useState(false); 
   const [currentTab, setCurrentTab] = useState("face");
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -203,10 +138,10 @@ const ProductManagement = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  // Get current products based on tab
+
+  // ... (currentProducts, filteredProducts, paginatedProducts are unchanged) ...
   const currentProducts = currentTab === "face" ? faceProducts : bodyProducts;
 
-  // Filter products
   const filteredProducts = useMemo(() => {
     return currentProducts.filter((product) => {
       const brandText = (product.brand || "").toLowerCase();
@@ -246,7 +181,6 @@ const ProductManagement = () => {
     });
   }, [currentProducts, searchTerm, filters, currentTab]);
 
-  // Pagination
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
@@ -254,7 +188,8 @@ const ProductManagement = () => {
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
-  // Handlers
+
+  // ... (Modal/Filter handlers are unchanged) ...
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
@@ -288,47 +223,95 @@ const ProductManagement = () => {
     setIsModalOpen(true);
   };
 
-  // CRUD functions
-  const handleAddProduct = (productData) => {
-    const newProduct = {
-      ...productData,
-      id: Math.max(...currentProducts.map((p) => p.id), 0) + 1,
-      createdAt: new Date().toISOString(),
-      area: currentTab, // Set area based on current tab
-    };
 
-    if (currentTab === "face") {
-      setFaceProducts((prev) => [...prev, newProduct]);
-    } else {
-      setBodyProducts((prev) => [...prev, newProduct]);
+  // --- CRUD FUNCTIONS (UPDATED) ---
+
+  const handleAddProduct = async (productData) => {
+    try {
+      let newId;
+      if (currentTab === "face") {
+        newId = await upsertFaceProduct(productData);
+      } else {
+        newId = await upsertBodyProduct(productData);
+      }
+
+      if (newId) {
+        // --- NEW STEP ---
+        // Sync ingredients, if any
+        if (productData.ingredients && productData.ingredients.length > 0) {
+          await setProductIngredients(newId, productData.ingredients);
+        }
+        // --- END NEW STEP ---
+
+        // Success! Refetch the data to show the new product
+        if (currentTab === "face") {
+          await loadFaceProducts();
+        } else {
+          await loadBodyProducts();
+        }
+      } else {
+        console.error("Failed to add product (no ID returned)");
+      }
+    } catch (err) {
+      console.error("Error adding product:", err);
     }
   };
 
-  const handleUpdateProduct = (productData) => {
-    if (currentTab === "face") {
-      setFaceProducts((prev) =>
-        prev.map((p) =>
-          p.id === productData.id ? { ...p, ...productData } : p
-        )
-      );
-    } else {
-      setBodyProducts((prev) =>
-        prev.map((p) =>
-          p.id === productData.id ? { ...p, ...productData } : p
-        )
-      );
+  const handleUpdateProduct = async (productData) => {
+    try {
+      let updatedId;
+      if (currentTab === "face") {
+        updatedId = await upsertFaceProduct(productData);
+      } else {
+        updatedId = await upsertBodyProduct(productData);
+      }
+
+      if (updatedId) {
+        // --- NEW STEP ---
+        // Sync ingredients, if any
+        if (productData.ingredients && productData.ingredients.length > 0) {
+          // We use productData.id b/c it's an update and already has one
+          await setProductIngredients(productData.id, productData.ingredients);
+        }
+        // --- END NEW STEP ---
+
+        // Success! Refetch the data to show updated product
+        if (currentTab === "face") {
+          await loadFaceProducts();
+        } else {
+          await loadBodyProducts();
+        }
+      } else {
+        console.error("Failed to update product (no ID returned)");
+      }
+    } catch (err) {
+      console.error("Error updating product:", err);
     }
   };
 
-  const handleDeleteProduct = (productId) => {
-    if (currentTab === "face") {
-      setFaceProducts((prev) => prev.filter((p) => p.id !== productId));
-    } else {
-      setBodyProducts((prev) => prev.filter((p) => p.id !== productId));
+  const handleDeleteProduct = async (productId) => {
+    try {
+      // The ON DELETE CASCADE in your DB should handle product_ingredients
+      const success = await deleteProduct(productId);
+
+      if (success) {
+        // Success! Refetch the data to remove the product
+        if (currentTab === "face") {
+          await loadFaceProducts();
+        } else {
+          await loadBodyProducts();
+        }
+      } else {
+        console.error("Failed to delete product");
+      }
+    } catch (err) {
+      console.error("Error deleting product:", err);
     }
   };
 
-  // Table columns configuration
+  // --- END OF CRUD FUNCTIONS ---
+
+  // ... (tableColumns, useEffect, loadFaceProducts, loadBodyProducts are unchanged) ...
   const tableColumns = {
     face: [
       { key: "name", label: "Product", sortable: true },
@@ -348,6 +331,7 @@ const ProductManagement = () => {
 
   useEffect(() => {
     loadFaceProducts();
+    loadBodyProducts();
   }, []);
 
   const loadFaceProducts = async () => {
@@ -366,6 +350,24 @@ const ProductManagement = () => {
     }
   };
 
+  const loadBodyProducts = async () => {
+    try {
+      setLoadingBody(true);
+      const products = await fetchBodyProducts();
+      if (Array.isArray(products)) {
+        setBodyProducts(products);
+      } else {
+        console.warn("fetchBodyProducts returned unexpected value:", products);
+      }
+    } catch (err) {
+      console.error("Failed to load body products:", err);
+    } finally {
+      setLoadingBody(false);
+    }
+  };
+
+
+  // ... (The entire JSX for the component is unchanged) ...
   return (
     <div className="min-h-screen bg-gray-50/30 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl">
@@ -621,7 +623,7 @@ const ProductManagement = () => {
           </div>
 
           {/* Empty State */}
-          {paginatedProducts.length === 0 && (
+          {!(loadingFace || loadingBody) && paginatedProducts.length === 0 && (
             <div className="text-center py-12">
               <Package className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-4 text-sm font-medium text-gray-900">
@@ -633,6 +635,15 @@ const ProductManagement = () => {
                   ? "Try adjusting your search or filters"
                   : `Get started by creating a new ${currentTab} product`}
               </p>
+            </div>
+          )}
+
+          {(loadingFace || loadingBody) && paginatedProducts.length === 0 && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto"></div>
+              <h3 className="mt-4 text-sm font-medium text-gray-900">
+                Loading {currentTab} products...
+              </h3>
             </div>
           )}
 

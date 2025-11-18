@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../../supabase";
+import { supabase, supabaseAdmin } from "../../supabase";
 
 export const useAccountCRUD = (
   users,
@@ -9,7 +9,6 @@ export const useAccountCRUD = (
 ) => {
   const [loading, setLoading] = useState(false);
 
-  // ✅ FETCH USERS (now inside this hook)
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -57,7 +56,6 @@ export const useAccountCRUD = (
     }
   };
 
-  // 🚧 TO IMPLEMENT NEXT
   const handleAddUser = async (newUserData) => {
     try {
       setLoading(true);
@@ -66,7 +64,7 @@ export const useAccountCRUD = (
 
       // STEP 1 ✅ Create user in auth.users
       const { data: authData, error: authError } =
-        await supabase.auth.admin.createUser({
+        await supabaseAdmin.auth.admin.createUser({
           email,
           password,
           email_confirm: true,
@@ -75,17 +73,8 @@ export const useAccountCRUD = (
       if (authError) throw authError;
       const userId = authData.user.id;
 
-      // STEP 2 ✅ Insert into public.user
-      const { error: userError } = await supabase.from("user").insert({
-        id: userId,
-        email: email,
-        role: role || "User",
-      });
-
-      if (userError) throw userError;
-
       // STEP 3 ✅ Insert into public.user_details
-      const { error: detailsError } = await supabase
+      const { error: detailsError } = await supabaseAdmin
         .from("user_details")
         .insert({
           id: userId,
@@ -109,15 +98,95 @@ export const useAccountCRUD = (
     }
   };
 
+  /**
+   * -------------------------------------------
+   * ✅ COMPLETED UPDATE FUNCTION
+   * -------------------------------------------
+   */
   const handleUpdateUser = async (updatedUserData) => {
-    console.log(
-      "Update user clicked — not yet implemented ✅",
-      updatedUserData
-    );
+    try {
+      setLoading(true);
+      const { id, first_name, last_name, email, password, role } =
+        updatedUserData;
+
+      // STEP 1: Update Auth User (Email/Password)
+      // Only update password if a new one is provided
+      const authUpdateData = { email };
+      if (password) {
+        authUpdateData.password = password;
+      }
+
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+        id,
+        authUpdateData
+      );
+      if (authError) throw authError;
+
+      // STEP 2: Update public.user table (Role)
+      const { error: userError } = await supabaseAdmin
+        .from("user")
+        .update({ role, email }) // Also update email here to keep it in sync
+        .eq("id", id);
+      if (userError) throw userError;
+
+      // STEP 3: Update public.user_details table (Name)
+      const { error: detailsError } = await supabaseAdmin
+        .from("user_details")
+        .update({ first_name, last_name })
+        .eq("id", id);
+      if (detailsError) throw detailsError;
+
+      // STEP 4: Refresh user list
+      await fetchUsers();
+
+      // STEP 5: Close modal
+      setIsModalOpen(false);
+      setSelectedUser(null);
+    } catch (err) {
+      console.error("Update user failed", err);
+      alert("Failed to update user: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  /**
+   * -------------------------------------------
+   * ✅ COMPLETED DELETE FUNCTION
+   * -------------------------------------------
+   */
   const handleDeleteUser = async (userId) => {
-    console.log("Delete user clicked — not yet implemented ✅", userId);
+    // We add a window.confirm for safety
+    if (!window.confirm("Are you sure you want to delete this user?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // STEP 1: Delete the user from auth.users
+      // If you have "ON DELETE CASCADE" set up for your
+      // 'user' and 'user_details' tables, this is all you need.
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+      if (authError) throw authError;
+
+      // Note: If you do NOT have cascading deletes, you would
+      // manually delete from 'user_details' and 'user' *first*,
+      // but assuming you do, this is much cleaner.
+
+      // STEP 2: Refresh user list
+      await fetchUsers();
+
+      // STEP 3: Close modal
+      setIsModalOpen(false);
+      setSelectedUser(null);
+    } catch (err) {
+      console.error("Delete user failed", err);
+      alert("Failed to delete user: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {

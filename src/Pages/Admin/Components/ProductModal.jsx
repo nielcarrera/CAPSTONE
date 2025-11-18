@@ -3,6 +3,34 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Save, Trash2, AlertTriangle } from "lucide-react";
 
+// Ingredient names from your previous request
+const allIngredientNames = [
+  "Azelaic Acid", "2% Salicylic Acid", "Niacinamide", "10% Benzoyl Peroxide",
+  "Aloe Vera", "Hyaluronic Acid", "Witch Hazel", "Green Tea", "Centella Asiatica",
+  "Allantoin", "Salicylic Acid", "Glycolic Acid", "Lactic Acid", "Ceramides",
+  "Glycerin", "Retinol", "Peptides", "Bakuchiol", "Vitamin E", "Shea Butter",
+  "Chamomile", "Bisabolol", "Papaya Enzymes", "Tocopherol", "Matrixyl 3000",
+  "Haloxyl™", "Vitamin B5", "Caffeine", "Arnica", "Vitamin K", "Colloidal Oatmeal",
+  "Tripeptides", "Gluconolactone", "Tretinoin", "Tea Tree Oil", "Willow Bark Extract",
+  "Squalane", "Panthenol", "Licorice Root", "Retinaldehyde", "Kaolin Clay",
+  "Adapalene", "Beta-Glucan", "Zinc PCA", "Zinc", "Oat Extract", "Mandelic Acid",
+  "Cucumber Extract", "Licorice Extract", "Sulfur 10%,", "Bentonite,", "Zinc Oxide",
+  "Betamethasone", "Coal Tar", "Clotrimazole", "Ferric Oxide", "Hydrocortisone",
+  "Liquid Nitrogen"
+];
+
+// Body impurity data from your new JSON
+const bodyImpurities = [
+  { "id": 1, "name": "Acne (Acne Vulgaris)" },
+  { "id": 2, "name": "Vitiligo" },
+  { "id": 3, "name": "Psoriasis" },
+  { "id": 4, "name": "Ringworm (Tinea Corporis)" },
+  { "id": 5, "name": "Warts" },
+  { "id": 6, "name": "Chickenpox (Varicella)" },
+  { "id": 7, "name": "Hyperpigmentation" },
+  { "id": 8, "name": "Dermatitis (Eczema)" }
+];
+
 const ProductModal = ({
   isOpen,
   onClose,
@@ -16,11 +44,12 @@ const ProductModal = ({
   const [formData, setFormData] = useState({
     type: "",
     name: "",
+    image: "",
     description: "",
-    severity: "mild",
+    severity: "Mild",
     ingredients: [],
     skinType: "",
-    impurity: "",
+    impurity: "", // This will hold the ID for body, or string for face
     cautions: [],
     usage: "",
     bodypart: "",
@@ -31,15 +60,32 @@ const ProductModal = ({
 
   useEffect(() => {
     if (product) {
+      // Robustly parse 'ingredients'
+      let ingredientsList = [];
+      if (Array.isArray(product.ingredients)) {
+        ingredientsList = product.ingredients;
+      } else if (typeof product.ingredients === "string" && product.ingredients) {
+        ingredientsList = product.ingredients.split(",").map((i) => i.trim());
+      }
+
+      // Robustly parse 'cautions'
+      let cautionsList = [];
+      if (Array.isArray(product.cautions)) {
+        cautionsList = product.cautions;
+      } else if (typeof product.cautions === "string" && product.cautions) {
+        cautionsList = product.cautions.split(",").map((c) => c.trim());
+      }
+
       setFormData({
         type: product.type || "",
         name: product.name || "",
+        image: product.image || "",
         description: product.description || "",
-        severity: product.severity || "mild",
-        ingredients: product.ingredients || [],
+        severity: product.severity || "Mild",
+        ingredients: ingredientsList,
         skinType: product.skinType || "",
-        impurity: product.impurity || "",
-        cautions: product.cautions || [],
+        impurity: product.impurity || "", // This will be the ID (e.g., 5) or string (e.g., "acne")
+        cautions: cautionsList,
         usage: product.usage || "",
         bodypart: product.bodypart || "",
       });
@@ -47,8 +93,9 @@ const ProductModal = ({
       setFormData({
         type: "",
         name: "",
+        image: "",
         description: "",
-        severity: "mild",
+        severity: "Mild",
         ingredients: [],
         skinType: "",
         impurity: "",
@@ -67,6 +114,9 @@ const ProductModal = ({
       newErrors.description = "Description is required";
     if (area === "body" && !formData.bodypart.trim())
       newErrors.bodypart = "Body part is required for body products";
+    // Validation for body impurity ID
+    if (area === "body" && !formData.impurity)
+      newErrors.impurity = "Target impurity is required for body products";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -77,7 +127,9 @@ const ProductModal = ({
 
     const productData = {
       ...formData,
-      area: area, // Set the area based on the current tab
+      area: area,
+      cautions: formData.cautions.join(", "),
+      ingredients: formData.ingredients,
     };
 
     if (type === "add") {
@@ -94,12 +146,12 @@ const ProductModal = ({
   };
 
   const addIngredient = () => {
-    if (ingredientInput.trim()) {
+    if (ingredientInput.trim() && !formData.ingredients.includes(ingredientInput)) {
       setFormData((prev) => ({
         ...prev,
         ingredients: [...prev.ingredients, ingredientInput.trim()],
       }));
-      setIngredientInput("");
+      setIngredientInput(""); // Reset dropdown to placeholder
     }
   };
 
@@ -134,6 +186,7 @@ const ProductModal = ({
     }
   };
 
+  // ... (Delete modal JSX is unchanged) ...
   if (type === "delete") {
     return (
       <AnimatePresence>
@@ -199,7 +252,7 @@ const ProductModal = ({
             exit={{ opacity: 0, scale: 0.9 }}
             className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
           >
-            {/* Header */}
+            {/* ... (Header is unchanged) ... */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">
                 {type === "add"
@@ -223,10 +276,7 @@ const ProductModal = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Basic Information */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Basic Information
-                    </h3>
-
+                    {/* ... (Name, Type, Image inputs are unchanged) ... */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Product Name *
@@ -270,8 +320,23 @@ const ProductModal = ({
                         </p>
                       )}
                     </div>
-
-                    {/* Body Part Field - Only for Body Products */}
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Image URL
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.image}
+                        onChange={(e) =>
+                          handleInputChange("image", e.target.value)
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        placeholder="https://example.com/image.png"
+                      />
+                    </div>
+                   
+                    {/* ... (Body Part field is unchanged) ... */}
                     {area === "body" && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -305,7 +370,7 @@ const ProductModal = ({
                       Product Properties
                     </h3>
 
-                    {/* Severity Field - Only for Face Products */}
+                    {/* ... (Severity is unchanged) ... */}
                     {area === "face" && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -318,46 +383,79 @@ const ProductModal = ({
                           }
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         >
-                          <option value="mild">Mild</option>
-                          <option value="moderate">Moderate</option>
-                          <option value="strong">Strong</option>
+                          <option value="Mild">Mild</option>
+                          <option value="Moderate">Moderate</option>
+                          <option value="Severe">Severe</option>
                         </select>
                       </div>
                     )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Skin Type
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.skinType}
-                        onChange={(e) =>
-                          handleInputChange("skinType", e.target.value)
-                        }
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        placeholder="e.g., oily, dry, combination, all"
-                      />
-                    </div>
+                    {/* --- THIS BLOCK IS NOW CONDITIONAL --- */}
+                    {area === "face" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Skin Type
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.skinType}
+                          onChange={(e) =>
+                            handleInputChange("skinType", e.target.value)
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          placeholder="e.g., oily, dry, combination, all"
+                        />
+                      </div>
+                    )}
+                    {/* --- END OF CHANGE --- */}
 
+
+                    {/* ... (Target Impurity is unchanged from last step) ... */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Target Impurity
+                        Target Impurity {area === 'body' && '*'}
                       </label>
-                      <input
-                        type="text"
-                        value={formData.impurity}
-                        onChange={(e) =>
-                          handleInputChange("impurity", e.target.value)
-                        }
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        placeholder="e.g., acne, dryness, hyperpigmentation"
-                      />
+                      {area === "body" ? (
+                        // Dropdown for Body
+                        <select
+                          value={formData.impurity}
+                          onChange={(e) =>
+                            handleInputChange("impurity", e.target.value)
+                          }
+                          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                            errors.impurity ? "border-red-300" : "border-gray-300"
+                          }`}
+                        >
+                          <option value="">Select an impurity...</option>
+                          {bodyImpurities.map((impurity) => (
+                            <option key={impurity.id} value={impurity.id}>
+                              {impurity.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        // Text input for Face
+                        <input
+                          type="text"
+                          value={formData.impurity}
+                          onChange={(e) =>
+                            handleInputChange("impurity", e.target.value)
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          placeholder="e.g., acne, hyperpigmentation"
+                        />
+                      )}
+                      {errors.impurity && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.impurity}
+                        </p>
+                      )}
                     </div>
+                    
                   </div>
                 </div>
 
-                {/* Description */}
+                {/* ... (Description is unchanged) ... */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description *
@@ -380,23 +478,24 @@ const ProductModal = ({
                   )}
                 </div>
 
-                {/* Ingredients */}
+                {/* ... (Ingredients dropdown is unchanged from last step) ... */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Ingredients
                   </label>
                   <div className="flex space-x-2 mb-2">
-                    <input
-                      type="text"
+                    <select
                       value={ingredientInput}
                       onChange={(e) => setIngredientInput(e.target.value)}
-                      onKeyPress={(e) =>
-                        e.key === "Enter" &&
-                        (e.preventDefault(), addIngredient())
-                      }
                       className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      placeholder="Add an ingredient"
-                    />
+                    >
+                      <option value="">Select an ingredient...</option>
+                      {allIngredientNames.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       type="button"
                       onClick={addIngredient}
@@ -424,7 +523,7 @@ const ProductModal = ({
                   </div>
                 </div>
 
-                {/* Usage & Cautions */}
+                {/* ... (Usage & Cautions are unchanged) ... */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -486,7 +585,7 @@ const ProductModal = ({
                 </div>
               </div>
 
-              {/* Footer */}
+              {/* ... (Footer is unchanged) ... */}
               <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
                 <button
                   type="button"

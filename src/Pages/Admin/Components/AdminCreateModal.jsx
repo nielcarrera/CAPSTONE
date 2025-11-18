@@ -3,10 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, User, Mail, Shield, Calendar, AlertTriangle } from "lucide-react";
 
 const Modal = ({ isOpen, onClose, children, size = "md" }) => {
-  // --- FIX 1: Tailwind Class Lookup ---
-  // Tailwind CSS cannot build class names dynamically from variables
-  // (e.g., `max-w-${size}`). We must provide the full class name.
-  // This lookup object maps your "size" prop to the correct class.
   const sizeClasses = {
     sm: "max-w-sm",
     md: "max-w-md",
@@ -21,8 +17,6 @@ const Modal = ({ isOpen, onClose, children, size = "md" }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          // --- FIX 2: Added a background color (`bg-gray-900/50`) ---
-          // You had `bg-opacity-50` but no base color. This adds the dark backdrop.
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm"
           onClick={onClose}
         >
@@ -30,8 +24,6 @@ const Modal = ({ isOpen, onClose, children, size = "md" }) => {
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            // --- FIX 1 (Applied) ---
-            // Here we use the lookup object to get the correct class.
             className={`bg-white rounded-2xl shadow-xl w-full ${
               sizeClasses[size] || sizeClasses.md
             } mx-auto`}
@@ -61,23 +53,31 @@ const AccountModal = ({
     password: "",
   });
 
+  // This is the initial, clean state for your form
+  const getInitialFormData = () => ({
+    name: "",
+    email: "",
+    role: "User",
+    password: "",
+    // If you have 'id' in your state, it will be reset too
+  });
+
   useEffect(() => {
+    // When opening for "edit"
     if (type === "edit" && user) {
       setFormData({
         name: user.name,
         email: user.email,
         role: user.role,
-        password: "", // Don't pre-fill password for security
+        password: "", // Always clear password
       });
-    } else {
-      setFormData({
-        name: "",
-        email: "",
-        role: "User",
-        password: "",
-      });
+    } 
+    // When opening for "add"
+    else if (type === "add") {
+      // Use the clean state function
+      setFormData(getInitialFormData());
     }
-  }, [type, user, isOpen]);
+  }, [type, user, isOpen]); // Your dependencies are correct
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -97,9 +97,16 @@ const AccountModal = ({
     if (type === "add") {
       onAdd(payload);
     } else if (type === "edit") {
-      onEdit(user.id, payload);
+      // --- THIS IS THE FIX ---
+      // Add the user.id to the payload to create the final updatedUserData object
+      const updatedUserData = {
+        ...payload,
+        id: user.id, // Pass the id here
+      };
+      onEdit(updatedUserData); // Pass the single object
+      // --- END OF FIX ---
     }
-  }; // ✅ <-- This was missing!
+  };
 
   const handleDelete = () => {
     onDelete(user.id);
@@ -114,7 +121,6 @@ const AccountModal = ({
 
   if (type === "delete") {
     return (
-      // This will now correctly be `max-w-sm`
       <Modal isOpen={isOpen} onClose={onClose} size="sm">
         <div className="p-6">
           <div className="flex items-center space-x-3 mb-4">
@@ -130,8 +136,6 @@ const AccountModal = ({
             This action cannot be undone.
           </p>
 
-          {/* --- FIX 3: Consistent Footer --- */}
-          {/* Added `pt-4 border-t` to match the Add/Edit form's footer */}
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
             <button
               onClick={onClose}
@@ -155,7 +159,6 @@ const AccountModal = ({
   const title = isEdit ? "Edit User" : "Add New User";
 
   return (
-    // This will now correctly be `max-w-lg`
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <div className="p-6">
         {/* Header */}
