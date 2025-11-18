@@ -126,7 +126,7 @@ const Login = () => {
         navigate("/intro");
       } else {
         console.log("User Data Role:", userData.role);
-        if(userData.role === 'Admin'){
+        if (userData.role === "Admin") {
           navigate("/admin");
         } else {
           console.log("Is not admin");
@@ -251,14 +251,6 @@ const Login = () => {
                 disabled={loading}
               >
                 {loading ? "Signing in..." : "Sign in"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate("/admin")}
-                className="bg-gray-600 hover:bg-gray-500 p-2.5 rounded text-sm font-medium mt-2"
-              >
-                Go to Admin Panel
               </button>
 
               <div className="relative my-4">
